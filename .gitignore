@@ -168,8 +168,8 @@ cython_debug/
 #.idea/
 
 # data
-**/data/
-**/models/
+/data/
+/models/
 **/history/
 **/checkpoints/
 **/catboost_info/
