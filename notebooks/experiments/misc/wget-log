@@ -1,0 +1,8 @@
+--2024-12-20 09:31:57--  https://drive.usercontent.google.com/download?id=1_o4xDSF6j95vAiYdd97VavyWq4EHHPdP&export=download&authuser=1&confirm=t
+Resolving drive.usercontent.google.com (drive.usercontent.google.com)... 142.250.74.97
+Connecting to drive.usercontent.google.com (drive.usercontent.google.com)|142.250.74.97|:443... connected.
+HTTP request sent, awaiting response... 200 OK
+Length: 295792946 (282M) [application/octet-stream]
+Saving to: ‘./data/dataset.csv’
+
+./data/dataset.csv    0%[                    ]   1,12M  12,5KB/s    eta 6h 24m ./data/dataset.csv    0%[                    ]   1,53M  16,9KB/s    eta 6h 24m 
