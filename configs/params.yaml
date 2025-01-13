@@ -1,0 +1,129 @@
+# Data Collection
+scraping:
+  headhunter:
+    enabled: true
+    data_dir: "data/raw/hh"
+    start_date: null  # will default to 2 days ago
+    end_date: null  # will default to today
+    per_page: 10
+    max_pages: 10
+    
+  getmatch:
+    enabled: true
+    data_dir: "data/raw/getmatch"
+    num_pages: 10
+    output_format: "csv"
+
+# Data Preprocessing
+preprocessing:
+  input_paths:
+    getmatch: "data/raw/getmatch/raw.csv"
+    hh: "data/raw/hh/raw.csv"
+  merged_path: "data/preprocessed/merged/merged.csv"
+  output_path: "data/preprocessed/preprocessed.csv"
+  salary_outliers:
+    bottom_percentile: 0.001
+    top_percentile: 1.0    # Keep all high values
+
+# Feature Engineering
+features:
+  target_name: "log_salary_from"
+  target_path: "data/processed/target/target"
+  preprocessed_data_path: "data/preprocessed/preprocessed.csv"
+  output_path: "data/processed/processed.csv"
+  features:
+    catboost:
+      text:
+        - "title"
+        - "location"
+        - "company"
+        - "description_no_numbers_with_skills"
+      categorical:
+        - "source"
+      numeric:
+        - "experience_from"
+        - "experience_to_adjusted_10"
+        - "description_size"
+    transformer:
+      text:
+        - "description_no_numbers"
+        - "title_company_location_skills_source"
+    bi_gru_cnn:
+      text:
+        - "description_no_numbers"
+        - "title_company_location_skills_source"
+
+  catboost:
+    features_path: "data/processed/catboost/features.csv"
+
+  transformer:
+    features_dir: "data/processed/transformer"
+    tokenizer: "intfloat/multilingual-e5-small"
+    add_query_prefix: true
+    feature_processing:
+      - name: "description_no_numbers"
+        max_len: 512
+        path: "data/processed/transformer/description_no_numbers.pt"
+      - name: "title_company_location_skills_source"
+        max_len: 256
+        path: "data/processed/transformer/title_company_location_skills_source.pt"
+  
+  bi_gru_cnn:
+    features_dir: "data/processed/bi_gru_cnn"
+
+# Models
+models:
+  catboost:
+    tokenizer_id: "Space"
+    dictionary_id: "Word"
+    max_dictionary_size: '50000'
+    occurrence_lower_bound: '25'
+    # occurrence_lower_bound: '0'
+    gram_order: "1"
+    learning_rate: 0.05
+    bagging_temperature: 0
+    random_strength: 10
+    l2_leaf_reg: 0
+    depth: 4
+    iterations: 2000
+    early_stopping_rounds: 100
+    loss_function: "RMSE"
+    eval_metric: "R2"
+    save_dir: "models/catboost"
+
+  transformer:
+    model_name: "intfloat/multilingual-e5-small"
+    hidden_size: 384
+    mlp_hidden_size: 128
+    num_heads: 8
+    dropout: 0.1
+    batch_size: 32
+    learning_rate: 2e-5
+    num_epochs: 10
+    weight_decay: 1e-2
+    loss_function: "huber" # [mse, huber]
+    save_path: "models/transformer/model.pt"
+
+
+# Training
+training:
+  main_seed: 42
+  seeds:
+    - 42
+    - 78687
+    - 123123
+  train_size: 0.8
+  test_size: 0.2
+
+  metrics:
+    - "mae"
+    - "r2"
+
+# Experiment Tracking
+logging:
+  mlflow:
+    tracking_uri: "http://localhost:5000"
+    experiment_name: "salary_prediction"
+
+  save_artifacts: true
+  log_predictions: true
