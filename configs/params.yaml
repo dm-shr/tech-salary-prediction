@@ -1,3 +1,5 @@
+is_test: false
+
 # Data Collection
 scraping:
   headhunter:
@@ -59,6 +61,7 @@ features:
   transformer:
     features_dir: "data/processed/transformer"
     tokenizer: "intfloat/multilingual-e5-small"
+    tokenizer_test: "sergeyzh/rubert-tiny-turbo"
     add_query_prefix: true
     feature_processing:
       - name: "description_no_numbers"
@@ -70,15 +73,18 @@ features:
   
   bi_gru_cnn:
     features_dir: "data/processed/bi_gru_cnn"
+  
+  test_size: 0.25 # 25% of the data will be used for testing the downstream pipeline
 
 # Models
 models:
   catboost:
+    mlflow_run_name: "catboost"
     tokenizer_id: "Space"
     dictionary_id: "Word"
     max_dictionary_size: '50000'
     occurrence_lower_bound: '25'
-    # occurrence_lower_bound: '0'
+    occurrence_lower_bound_test: '0'
     gram_order: "1"
     learning_rate: 0.05
     bagging_temperature: 0
@@ -86,23 +92,37 @@ models:
     l2_leaf_reg: 0
     depth: 4
     iterations: 2000
+    iterations_test: 100
     early_stopping_rounds: 100
     loss_function: "RMSE"
     eval_metric: "R2"
     save_dir: "models/catboost"
+    y_pred_path: "data/predictions/catboost/y_pred.npy"
+    y_true_path: "data/predictions/catboost/y_true.npy"
 
   transformer:
+    mlflow_run_name: "transformer"
     model_name: "intfloat/multilingual-e5-small"
+    model_name_test: "sergeyzh/rubert-tiny-turbo"
     hidden_size: 384
+    hidden_size_test: 312
     mlp_hidden_size: 128
     num_heads: 8
     dropout: 0.1
     batch_size: 32
     learning_rate: 2e-5
     num_epochs: 10
+    num_epochs_test: 2
     weight_decay: 1e-2
     loss_function: "huber" # [mse, huber]
     save_path: "models/transformer/model.pt"
+    y_pred_path: "data/predictions/transformer/y_pred.npy"
+    y_true_path: "data/predictions/transformer/y_true.npy"
+  
+  blended:
+    mlflow_run_name: "blended"
+    catboost_weight: 0.5
+    transformer_weight: 0.5
 
 
 # Training
@@ -112,12 +132,16 @@ training:
     - 42
     - 78687
     - 123123
-  train_size: 0.8
   test_size: 0.2
+  # train_size: 0.8
 
   metrics:
     - "mae"
     - "r2"
+    - "rmse"
+  
+  confidence_interval:
+    alpha: 0.05
 
 # Experiment Tracking
 logging:

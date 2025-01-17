@@ -21,6 +21,10 @@ class FeatureBuilder:
         try:
             # Load configuration
             config = load_config()
+            self.config = config
+
+            self.is_test = config['is_test']
+            # Get paths from configuration
             self.preprocessed_data_path = config['features']['preprocessed_data_path']
             self.output_file_path = config['features']['output_path']
             self.target_name = config['features']['target_name']
@@ -48,7 +52,8 @@ class FeatureBuilder:
             logger.info(f"Output file path: {self.output_file_path}")
 
             # Load tokenizer
-            self.tokenizer_transformer = AutoTokenizer.from_pretrained(config['features']['transformer']['tokenizer'])
+            tokenizer_name = config['features']['transformer']['tokenizer'] if not self.is_test else config['features']['transformer']['tokenizer_test']
+            self.tokenizer_transformer = AutoTokenizer.from_pretrained(tokenizer_name)
 
             self.transformer_feature_processing: List[Dict] = config['features']['transformer']['feature_processing']
 
@@ -294,13 +299,18 @@ class FeatureBuilder:
         try:
             logger.info("Processing all features...")
             self.merge_skills_and_descriptions()
-            # self.fill_missing_experience()
-            # self.fill_experience_by_grade()
-            # self.adjust_experience_upper_bound()
+            if not self.is_test:
+                self.fill_missing_experience()
+                self.fill_experience_by_grade()
+                self.adjust_experience_upper_bound()
             self.add_description_size_feature()
             self.add_title_company_location_skills_source_feature()
             if self.add_query_prefix:
                 self.add_query_prefix_to_text_features()
+            if self.is_test:
+                test_size = self.config["features"]["test_size"]
+                # drop test_size % of rows
+                self.data = self.data.sample(frac=test_size, random_state=42)
             logger.info("All features processed successfully.")
         except Exception as e:
             logger.error(f"Failed to process features: {str(e)}")
@@ -316,7 +326,6 @@ class FeatureBuilder:
             self.data[[self.target_name]].to_csv(self.target_output_path + '.csv', index=False)
             logger.info(f"Target data saved successfully to {self.target_output_path + '.csv'}.")
         except Exception as e:
-            # logger.error(f"Failed to save target data to CSV: {str(e)}")
             logger.error(f"Failed to save target data: {str(e)}")
             raise
 

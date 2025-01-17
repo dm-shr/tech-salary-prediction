@@ -5,13 +5,13 @@ import pandas as pd
 import time
 import logging
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 
 
 class GetmatchJobScraper:
     def __init__(self,
-                 data_dir: str = os.path.join("data", "raw", "source2"),
+                 data_dir: str = os.path.join("data", "raw", "getmatch"),
                  num_pages: int = 5,
                  output_format: str = 'csv'):
         self.DATA_DIR = data_dir
@@ -60,7 +60,7 @@ class GetmatchJobScraper:
 
         return None, None
 
-    def get_job_description(self, job_url: str) -> Dict:
+    def get_job_description(self, job_url: str, published_at) -> Dict:
         """Extracts full job description from the job URL"""
         try:
             response = requests.get(job_url, headers=self.headers)
@@ -68,6 +68,7 @@ class GetmatchJobScraper:
             soup = BeautifulSoup(response.text, 'html.parser')
 
             job_data = {
+                'published_date': published_at,
                 'url': job_url,
                 'title': None,
                 'company_name': None,
@@ -158,7 +159,7 @@ class GetmatchJobScraper:
             self.logger.error(f"Error when fetching {job_url}: {e}")
             return {'url': job_url, 'error': str(e)}
 
-    def get_job_urls(self, page: int = 1) -> List[str]:
+    def get_job_urls(self, page: int = 1) -> Tuple[List[str], List[str]]:
         """Getting list of jobs URLs from the page"""
         params = {"p": page}
         try:
@@ -169,14 +170,42 @@ class GetmatchJobScraper:
             job_cards = soup.find_all('div', class_='b-vacancy-card')
 
             job_urls = []
+            published_at_dates = []
             for card in job_cards:
+                # get published_at date from element div class="b-vacancy-card-header__publish-date"
+                published_at_elem = card.find('div', class_='b-vacancy-card-header__publish-date')
+                published_at = datetime.now().strftime('%d.%m.%Y')
+                if published_at_elem:
+                    published_at = published_at_elem.text.strip()
+                    if 'сегодня' in published_at:
+                        published_at = datetime.now().strftime('%d.%m.%Y')
+                    else: # format of '16 января 2025 г.', convert it
+                        day, month, year, _ = published_at.split()
+                        month = {
+                            'января': '01',
+                            'февраля': '02',
+                            'марта': '03',
+                            'апреля': '04',
+                            'мая': '05',
+                            'июня': '06',
+                            'июля': '07',
+                            'августа': '08',
+                            'сентября': '09',
+                            'октября': '10',
+                            'ноября': '11',
+                            'декабря': '12'
+                        }[month]
+                        published_at = f'{day}.{month}.{year}'
+                        published_at = datetime.strptime(published_at, '%d.%m.%Y').strftime('%d.%m.%Y')
+                
+                published_at_dates.append(published_at)
                 title_elem = card.find('h3')
                 if title_elem:
                     link_elem = title_elem.find('a')
                     if link_elem and link_elem.get('href'):
                         job_urls.append('https://getmatch.ru' + link_elem.get('href'))
 
-            return job_urls
+            return job_urls, published_at_dates
         except Exception as e:
             self.logger.error(f"Error when fetching job list from page {page}: {e}")
             return []
@@ -187,11 +216,12 @@ class GetmatchJobScraper:
 
         for page in range(1, self.num_pages + 1):
             self.logger.info(f"Parsing page {page}...")
-            job_urls = self.get_job_urls(page)
+            job_urls, published_at_dates = self.get_job_urls(page)
 
-            for url in job_urls:
+            # for url in job_urls:
+            for url, published_at in zip(job_urls, published_at_dates):
                 self.logger.info(f"Getting job description: {url}")
-                job_data = self.get_job_description(url)
+                job_data = self.get_job_description(url, published_at)
                 if job_data and 'error' not in job_data:
                     all_jobs.append(job_data)
                 time.sleep(1)

@@ -156,6 +156,7 @@ class HeadhunterJobScraper:
         with open(filepath, mode='w', newline='', encoding='utf-8') as file:
             writer = csv.writer(file)
             writer.writerow([
+                "published_date",
                 "url", "title", "area", "company", "skills", "description",
                 "salary_from", "salary_to", "currency", "experience_from", "experience_to"
             ])
@@ -164,8 +165,14 @@ class HeadhunterJobScraper:
                 if vacancy.get('salary') is not None:
                     experience = vacancy.get('experience', {}).get('id', '')
                     exp_from, exp_to = self.process_experience(experience)
+                    published_at = vacancy.get('published_at', None) # format = 2024-10-31T14:45:21+0300, convert to a datetime object
+                    if published_at is None:
+                        published_at = datetime.now().strftime('%d.%m.%Y')
+                    else:
+                        published_at = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%S%z").strftime('%d.%m.%Y')
                     
                     writer.writerow([
+                        published_at,
                         vacancy.get('alternate_url', ''),
                         vacancy.get('name', ''),
                         vacancy.get('area', {}).get('name', ''),

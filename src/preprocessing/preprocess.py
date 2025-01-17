@@ -15,6 +15,8 @@ class JobDataPreProcessor:
         # Load configuration
         config = load_config()
 
+        self.is_test = config['is_test']
+
         self.getmatch_path = config['preprocessing']['input_paths']['getmatch']
         self.hh_path = config['preprocessing']['input_paths']['hh']
         self.merged_path = config['preprocessing']['merged_path']
@@ -109,7 +111,6 @@ class JobDataPreProcessor:
         logger.info("Filling missing skills...")
         merged_data['skills'] = merged_data['skills'].replace([None, ''], np.nan)
         merged_data.fillna({'skills': 'Не указаны'}, inplace=True)
-
 
         # Filter by currency
         logger.info("Filtering by currency (RUR)...")
