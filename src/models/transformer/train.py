@@ -1,19 +1,23 @@
 import torch
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+from sklearn.metrics import root_mean_squared_error
 from torch.utils.data import DataLoader
-from sklearn.metrics import r2_score, mean_absolute_error, root_mean_squared_error
+
 from src.models.transformer.dataset import DualTextDataset
 
 
-def fit_eval_legacy(model,
-             train_data,
-             criterion,
-             optimizer,
-             config,
-             device, 
-            logger,
-            to_eval=True,
-            test_data=None,
-            ):
+def fit_eval_legacy(
+    model,
+    train_data,
+    criterion,
+    optimizer,
+    config,
+    device,
+    logger,
+    to_eval=True,
+    test_data=None,
+):
     """Train and evaluate the model."""
     train_dataset = DualTextDataset(**train_data)
     test_dataset = DualTextDataset(**test_data)
@@ -31,8 +35,12 @@ def fit_eval_legacy(model,
         for batch in train_dataloader:
             optimizer.zero_grad()
             inputs1, inputs2, targets = batch
-            input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1["attention_mask"].to(device)
-            input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(device)
+            input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1["attention_mask"].to(
+                device
+            )
+            input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(
+                device
+            )
             targets = targets.to(device)
 
             outputs = model(input1, attention_mask1, input2, attention_mask2).squeeze()
@@ -55,8 +63,12 @@ def fit_eval_legacy(model,
         with torch.no_grad():
             for batch in test_dataloader:
                 inputs1, inputs2, targets = batch
-                input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1["attention_mask"].to(device)
-                input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(device)
+                input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1[
+                    "attention_mask"
+                ].to(device)
+                input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2[
+                    "attention_mask"
+                ].to(device)
                 targets = targets.to(device)
 
                 outputs = model(input1, attention_mask1, input2, attention_mask2).squeeze()
@@ -66,39 +78,50 @@ def fit_eval_legacy(model,
         test_r2 = r2_score(all_labels, all_preds)
         history["test_loss"].append(sum(test_losses) / len(test_losses))
         history["test_r2"].append(test_r2)
-        logger.info(f"Epoch {epoch + 1}/{config['num_epochs']}: Train R2={train_r2:.4f}, Test R2={test_r2:.4f}")
+        logger.info(
+            f"Epoch {epoch + 1}/{config['num_epochs']}: Train R2={train_r2:.4f}, Test R2={test_r2:.4f}"
+        )
 
     return model, history
 
 
-def fit_eval(model,
-             train_data,
-             criterion,
-             optimizer,
-             config,
-             device, 
-             logger,
-             to_eval=True,
-             test_data=None):
+def fit_eval(
+    model, train_data, criterion, optimizer, config, device, logger, to_eval=True, test_data=None
+):
     """Train and evaluate the model with expanded metrics tracking."""
-    train_config = config['models']['transformer']
+    train_config = config["models"]["transformer"]
     train_dataset = DualTextDataset(**train_data)
-    train_dataloader = DataLoader(train_dataset, batch_size=train_config["batch_size"], shuffle=True)
-    
+    train_dataloader = DataLoader(
+        train_dataset,
+        batch_size=train_config["batch_size"],
+        shuffle=True,
+    )
+
     if to_eval:
         test_dataset = DualTextDataset(**test_data)
-        test_dataloader = DataLoader(test_dataset, batch_size=train_config["batch_size"], shuffle=False)
+        test_dataloader = DataLoader(
+            test_dataset,
+            batch_size=train_config["batch_size"],
+            shuffle=False,
+        )
 
     # Initialize history with all metrics
     history = {
-        "train_loss": [], "test_loss": [],
-        "train_rmse": [], "test_rmse": [],
-        "train_r2": [], "test_r2": [],
-        "train_mae": [], "test_mae": [],
-        "y_pred": [], "y_test": []  # These will be lists of lists (one per epoch)
+        "train_loss": [],
+        "test_loss": [],
+        "train_rmse": [],
+        "test_rmse": [],
+        "train_r2": [],
+        "test_r2": [],
+        "train_mae": [],
+        "test_mae": [],
+        "y_pred": [],
+        "y_test": [],  # These will be lists of lists (one per epoch)
     }
 
-    num_epochs = train_config["num_epochs"] if not config['is_test'] else train_config["num_epochs_test"]
+    num_epochs = (
+        train_config["num_epochs"] if not config["is_test"] else train_config["num_epochs_test"]
+    )
 
     for epoch in range(num_epochs):
         model.train()
@@ -110,11 +133,16 @@ def fit_eval(model,
         for batch in train_dataloader:
             optimizer.zero_grad()
             inputs1, inputs2, targets = batch
-            input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1["attention_mask"].to(device)
-            input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(device)
+            input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1["attention_mask"].to(
+                device
+            )
+            input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(
+                device
+            )
             # targets = targets.to(device)
-            targets = targets.to(device).squeeze()  # Squeeze the targets to match the shape of outputs
-
+            targets = targets.to(
+                device
+            ).squeeze()  # Squeeze the targets to match the shape of outputs
 
             outputs = model(input1, attention_mask1, input2, attention_mask2).squeeze()
             loss = criterion(outputs, targets)
@@ -146,10 +174,16 @@ def fit_eval(model,
             with torch.no_grad():
                 for batch in test_dataloader:
                     inputs1, inputs2, targets = batch
-                    input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1["attention_mask"].to(device)
-                    input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(device)
+                    input1, attention_mask1 = inputs1["input_ids"].to(device), inputs1[
+                        "attention_mask"
+                    ].to(device)
+                    input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2[
+                        "attention_mask"
+                    ].to(device)
                     # targets = targets.to(device)
-                    targets = targets.to(device).squeeze()  # Squeeze the targets to match the shape of outputs
+                    targets = targets.to(
+                        device
+                    ).squeeze()  # Squeeze the targets to match the shape of outputs
 
                     outputs = model(input1, attention_mask1, input2, attention_mask2).squeeze()
                     loss = criterion(outputs, targets)
