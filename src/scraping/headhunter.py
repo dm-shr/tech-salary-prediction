@@ -1,59 +1,86 @@
-import os
-import json
 import csv
-import requests
-from tqdm import tqdm
-from datetime import datetime, timedelta
-from bs4 import BeautifulSoup
+import os
 import random
-import time
 import re
+import time
+from datetime import datetime
+from datetime import timedelta
+
+import requests
+from bs4 import BeautifulSoup
+from tqdm import tqdm
+
 
 class HeadhunterJobScraper:
-    def __init__(self,
-                 data_dir=os.path.join("data", "raw", "source1"), 
-                 start_date=None,
-                 end_date=None,
-                 per_page=5,
-                 max_pages=2
-                 ):
+    def __init__(
+        self,
+        data_dir=os.path.join("data", "raw", "source1"),
+        start_date=None,
+        end_date=None,
+        per_page=5,
+        max_pages=2,
+    ):
         self.DATA_DIR = data_dir
         self.DATE_FORMAT = "%Y-%m-%d"
-        self.START_DATE = start_date or (datetime.now() - timedelta(days=2)).strftime(self.DATE_FORMAT)
+        self.START_DATE = start_date or (datetime.now() - timedelta(days=2)).strftime(
+            self.DATE_FORMAT
+        )
         self.END_DATE = end_date or datetime.now().strftime(self.DATE_FORMAT)
         self.PER_PAGE = per_page
         self.MAX_PAGES = max_pages
         self.PROFESSIONAL_ROLES = [
-            '156', '160', '10', '12', '150', '25', '165', '34', '36', '73', 
-            '155', '96', '164', '104', '157', '107', '112', '113', '148',
-            '114', '116', '121', '124', '125', '126'
+            "156",
+            "160",
+            "10",
+            "12",
+            "150",
+            "25",
+            "165",
+            "34",
+            "36",
+            "73",
+            "155",
+            "96",
+            "164",
+            "104",
+            "157",
+            "107",
+            "112",
+            "113",
+            "148",
+            "114",
+            "116",
+            "121",
+            "124",
+            "125",
+            "126",
         ]
         self.HEADERS = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:92.0) Gecko/20100101 Firefox/92.0',
-            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:92.0) Gecko/20100101 Firefox/92.0",
+            "Accept-Language": "ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7",
+            "Accept-Encoding": "gzip, deflate, br",
+            "Connection": "keep-alive",
         }
 
     def clean_html_tags(self, text):
-        soup = BeautifulSoup(text, 'html.parser')
-        return ' '.join(soup.get_text(separator=' ').split())
+        soup = BeautifulSoup(text, "html.parser")
+        return " ".join(soup.get_text(separator=" ").split())
 
     def get_russian_area_ids(self):
-        url = 'https://api.hh.ru/areas'
+        url = "https://api.hh.ru/areas"
         response = requests.get(url, headers=self.HEADERS)
         if response.status_code == 200:
             areas = response.json()
             russian_area_ids = set()
 
             def extract_ids(area):
-                if area['id'] == '113':
-                    for sub_area in area['areas']:
-                        russian_area_ids.add(sub_area['id'])
-                        for sub_sub_area in sub_area['areas']:
-                            russian_area_ids.add(sub_sub_area['id'])
+                if area["id"] == "113":
+                    for sub_area in area["areas"]:
+                        russian_area_ids.add(sub_area["id"])
+                        for sub_sub_area in sub_area["areas"]:
+                            russian_area_ids.add(sub_sub_area["id"])
                 else:
-                    for sub_area in area['areas']:
+                    for sub_area in area["areas"]:
                         extract_ids(sub_area)
 
             for area in areas:
@@ -75,7 +102,7 @@ class HeadhunterJobScraper:
             except requests.RequestException as e:
                 print(f"Request failed: {e}. Retrying...")
                 time.sleep(1)
-        return {'items': []}
+        return {"items": []}
 
     def get_vacancy_details(self, vacancy_id):
         url = f"https://api.hh.ru/vacancies/{vacancy_id}"
@@ -88,17 +115,17 @@ class HeadhunterJobScraper:
             except requests.RequestException as e:
                 print(f"Request failed: {e}. Retrying...")
                 time.sleep(1)
-        return {'id': vacancy_id, 'error': "Failed after retries"}
+        return {"id": vacancy_id, "error": "Failed after retries"}
 
     def process_experience(self, experience_id):
         if not experience_id:
             return None, None
-        if experience_id == 'noExperience':
+        if experience_id == "noExperience":
             return 0, 0
-        match = re.match(r'between(\d+)And(\d+)', experience_id)
+        match = re.match(r"between(\d+)And(\d+)", experience_id)
         if match:
             return map(int, match.groups())
-        match = re.match(r'moreThan(\d+)', experience_id)
+        match = re.match(r"moreThan(\d+)", experience_id)
         if match:
             return int(match.group(1)), -1
         return None, None
@@ -116,13 +143,13 @@ class HeadhunterJobScraper:
 
                 while True:
                     vacancies = self.get_vacancies(date_from, date_to, page)
-                    if not vacancies['items']:
+                    if not vacancies["items"]:
                         break
-                    all_vacancies.extend(vacancies['items'])
-                    if len(vacancies['items']) < self.PER_PAGE or page >= self.MAX_PAGES - 1:
+                    all_vacancies.extend(vacancies["items"])
+                    if len(vacancies["items"]) < self.PER_PAGE or page >= self.MAX_PAGES - 1:
                         break
                     page += 1
-                    pbar.update(len(vacancies['items']))
+                    pbar.update(len(vacancies["items"]))
 
                 current_date += timedelta(days=1)
 
@@ -131,12 +158,14 @@ class HeadhunterJobScraper:
     def remove_duplicates(self, vacancies):
         vacancy_map = {}
         for vacancy in tqdm(vacancies, desc="Removing duplicates"):
-            vid = vacancy['id']
+            vid = vacancy["id"]
             if vid not in vacancy_map:
                 vacancy_map[vid] = vacancy
             else:
-                existing_date = datetime.strptime(vacancy_map[vid]['published_at'], "%Y-%m-%dT%H:%M:%S%z")
-                new_date = datetime.strptime(vacancy['published_at'], "%Y-%m-%dT%H:%M:%S%z")
+                existing_date = datetime.strptime(
+                    vacancy_map[vid]["published_at"], "%Y-%m-%dT%H:%M:%S%z"
+                )
+                new_date = datetime.strptime(vacancy["published_at"], "%Y-%m-%dT%H:%M:%S%z")
                 if new_date > existing_date:
                     vacancy_map[vid] = vacancy
         return list(vacancy_map.values())
@@ -144,59 +173,76 @@ class HeadhunterJobScraper:
     def process_vacancies(self, vacancies):
         processed_vacancies = []
         for vacancy in tqdm(vacancies, desc="Processing vacancies"):
-            details = self.get_vacancy_details(vacancy['id'])
-            if 'error' not in details:
+            details = self.get_vacancy_details(vacancy["id"])
+            if "error" not in details:
                 processed_vacancies.append(details)
             time.sleep(0.5 + random.random() * 0.5)
         return processed_vacancies
 
     def save_to_csv(self, vacancies, filepath):
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
-        
-        with open(filepath, mode='w', newline='', encoding='utf-8') as file:
+
+        with open(filepath, mode="w", newline="", encoding="utf-8") as file:
             writer = csv.writer(file)
-            writer.writerow([
-                "published_date",
-                "url", "title", "area", "company", "skills", "description",
-                "salary_from", "salary_to", "currency", "experience_from", "experience_to"
-            ])
+            writer.writerow(
+                [
+                    "published_date",
+                    "url",
+                    "title",
+                    "area",
+                    "company",
+                    "skills",
+                    "description",
+                    "salary_from",
+                    "salary_to",
+                    "currency",
+                    "experience_from",
+                    "experience_to",
+                ]
+            )
 
             for vacancy in vacancies:
-                if vacancy.get('salary') is not None:
-                    experience = vacancy.get('experience', {}).get('id', '')
+                if vacancy.get("salary") is not None:
+                    experience = vacancy.get("experience", {}).get("id", "")
                     exp_from, exp_to = self.process_experience(experience)
-                    published_at = vacancy.get('published_at', None) # format = 2024-10-31T14:45:21+0300, convert to a datetime object
+                    published_at = vacancy.get(
+                        "published_at", None
+                    )  # format = 2024-10-31T14:45:21+0300, convert to a datetime object
                     if published_at is None:
-                        published_at = datetime.now().strftime('%d.%m.%Y')
+                        published_at = datetime.now().strftime("%d.%m.%Y")
                     else:
-                        published_at = datetime.strptime(published_at, "%Y-%m-%dT%H:%M:%S%z").strftime('%d.%m.%Y')
-                    
-                    writer.writerow([
-                        published_at,
-                        vacancy.get('alternate_url', ''),
-                        vacancy.get('name', ''),
-                        vacancy.get('area', {}).get('name', ''),
-                        vacancy.get('employer', {}).get('name', ''),
-                        ', '.join(skill['name'] for skill in vacancy.get('key_skills', [])),
-                        self.clean_html_tags(vacancy.get('description', '')),
-                        vacancy['salary'].get('from', ''),
-                        vacancy['salary'].get('to', ''),
-                        vacancy['salary'].get('currency', ''),
-                        exp_from,
-                        exp_to
-                    ])
+                        published_at = datetime.strptime(
+                            published_at, "%Y-%m-%dT%H:%M:%S%z"
+                        ).strftime("%d.%m.%Y")
+
+                    writer.writerow(
+                        [
+                            published_at,
+                            vacancy.get("alternate_url", ""),
+                            vacancy.get("name", ""),
+                            vacancy.get("area", {}).get("name", ""),
+                            vacancy.get("employer", {}).get("name", ""),
+                            ", ".join(skill["name"] for skill in vacancy.get("key_skills", [])),
+                            self.clean_html_tags(vacancy.get("description", "")),
+                            vacancy["salary"].get("from", ""),
+                            vacancy["salary"].get("to", ""),
+                            vacancy["salary"].get("currency", ""),
+                            exp_from,
+                            exp_to,
+                        ]
+                    )
 
     def scrape(self):
         print("Starting data collection...")
         russian_area_ids = self.get_russian_area_ids()
         vacancies = self.collect_vacancies()
-        
+
         print("Processing and filtering vacancies...")
         unique_vacancies = self.remove_duplicates(vacancies)
-        russian_vacancies = [v for v in unique_vacancies if v['area']['id'] in russian_area_ids]
-        
+        russian_vacancies = [v for v in unique_vacancies if v["area"]["id"] in russian_area_ids]
+
         processed_vacancies = self.process_vacancies(russian_vacancies)
-        
+
         output_file = os.path.join(self.DATA_DIR, "raw.csv")
         self.save_to_csv(processed_vacancies, output_file)
         print(f"Data collection completed. Results saved to {output_file}")

@@ -1,7 +1,8 @@
-import torch
-import numpy as np
 import gc
+
 import mlflow
+import numpy as np
+import torch
 
 
 def memory_cleanup():

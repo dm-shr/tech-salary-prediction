@@ -1,6 +1,6 @@
 import torch
-from torch.utils.data import Dataset
 from sklearn.model_selection import train_test_split
+from torch.utils.data import Dataset
 
 
 def split_tokenized_dict(tokenized_data, test_size=0.2, random_state=42):

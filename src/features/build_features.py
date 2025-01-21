@@ -1,13 +1,16 @@
-import pickle
+import re
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+
 import numpy as np
+import pandas as pd
 import torch
 from transformers import AutoTokenizer
 
-import pandas as pd
-import re
-from typing import Tuple, Optional, List, Dict
-
-from src.utils.utils import load_config, setup_logging
+from src.utils.utils import load_config
+from src.utils.utils import setup_logging
 
 
 # Configure logging
@@ -23,15 +26,17 @@ class FeatureBuilder:
             config = load_config()
             self.config = config
 
-            self.is_test = config['is_test']
+            self.is_test = config["is_test"]
             # Get paths from configuration
-            self.preprocessed_data_path = config['features']['preprocessed_data_path']
-            self.output_file_path = config['features']['output_path']
-            self.target_name = config['features']['target_name']
-            self.target_output_path = config['features']['target_path']
+            self.preprocessed_data_path = config["features"]["preprocessed_data_path"]
+            self.output_file_path = config["features"]["output_path"]
+            self.target_name = config["features"]["target_name"]
+            self.target_output_path = config["features"]["target_path"]
             # Get features to be kept
             # Extract features from nested dictionary of features
+
             def extract_features(nested_dict):
+
                 features = []
                 for _, value in nested_dict.items():
                     if isinstance(value, dict):
@@ -41,36 +46,47 @@ class FeatureBuilder:
                 return features
 
             # self.features = extract_features(config['features']['features'])
-            self.catboost_features = extract_features(config['features']['features']['catboost'])
+            self.catboost_features = extract_features(config["features"]["features"]["catboost"])
             # get text features
-            self.text_features = config['features']['features']['transformer']['text'] + config['features']['features']['bi_gru_cnn']['text']
+            self.text_features = (
+                config["features"]["features"]["transformer"]["text"]
+                + config["features"]["features"]["bi_gru_cnn"]["text"]
+            )
             self.text_features = list(set(self.text_features))
 
-            self.add_query_prefix = config['features']['transformer']['add_query_prefix'] # whether to add 'query: ' prefix to text features
+            self.add_query_prefix = config["features"]["transformer"][
+                "add_query_prefix"
+            ]  # whether to add 'query: ' prefix to text features
 
             logger.info(f"Input file path: {self.preprocessed_data_path}")
             logger.info(f"Output file path: {self.output_file_path}")
 
             # Load tokenizer
-            tokenizer_name = config['features']['transformer']['tokenizer'] if not self.is_test else config['features']['transformer']['tokenizer_test']
+            tokenizer_name = (
+                config["features"]["transformer"]["tokenizer"]
+                if not self.is_test
+                else config["features"]["transformer"]["tokenizer_test"]
+            )
             self.tokenizer_transformer = AutoTokenizer.from_pretrained(tokenizer_name)
 
-            self.transformer_feature_processing: List[Dict] = config['features']['transformer']['feature_processing']
+            self.transformer_feature_processing: List[Dict] = config["features"]["transformer"][
+                "feature_processing"
+            ]
 
-            self.transformer_features_dir = config['features']['transformer']['features_dir']
+            self.transformer_features_dir = config["features"]["transformer"]["features_dir"]
 
-            self.catboost_features_path = config['features']['catboost']['features_path']
-            
+            self.catboost_features_path = config["features"]["catboost"]["features_path"]
+
             # Load the data from the CSV file
             self.data = pd.read_csv(self.preprocessed_data_path)
             logger.info(f"Data loaded successfully with {len(self.data)} rows.")
 
-            ### REMOVE LATER ###
-            self.data['location'] = self.data['location'].replace([None, ''], np.nan)
-            self.data.fillna({'location': 'неизвестно'}, inplace=True)
-            self.data['skills'] = self.data['skills'].replace([None, ''], np.nan)
-            self.data.fillna({'skills': 'неизвестно'}, inplace=True)
-            ### REMOVE LATER ###
+            # NOTE: REMOVE LATER #
+            self.data["location"] = self.data["location"].replace([None, ""], np.nan)
+            self.data.fillna({"location": "неизвестно"}, inplace=True)
+            self.data["skills"] = self.data["skills"].replace([None, ""], np.nan)
+            self.data.fillna({"skills": "неизвестно"}, inplace=True)
+            # NOTE: REMOVE LATER #
 
         except Exception as e:
             logger.error(f"Failed to initialize FeatureBuilder: {str(e)}")
@@ -80,7 +96,9 @@ class FeatureBuilder:
         """Merge skills and descriptions to create a new feature."""
         try:
             logger.info("Merging skills and descriptions...")
-            self.data['description_no_numbers_with_skills'] = self.data['description_no_numbers'] + ' ' + self.data['skills']
+            self.data["description_no_numbers_with_skills"] = (
+                self.data["description_no_numbers"] + " " + self.data["skills"]
+            )
             logger.info("Skills and descriptions merged successfully.")
         except Exception as e:
             logger.error(f"Failed to merge skills and descriptions: {str(e)}")
@@ -90,10 +108,10 @@ class FeatureBuilder:
     def extract_numbers(text: str) -> Tuple[Optional[int], Optional[int]]:
         """
         Extract years of experience from text.
-        
+
         Args:
             text (str): Input text containing experience information
-            
+
         Returns:
             Tuple[Optional[int], Optional[int]]: Minimum and maximum years of experience
         """
@@ -101,45 +119,45 @@ class FeatureBuilder:
             logger.debug("Extracting numbers from text...")
             if not isinstance(text, str):
                 return None, None
-                
-            text = text.replace('ё', 'е').replace('–', '-')
-            
+
+            text = text.replace("ё", "е").replace("–", "-")
+
             # Patterns to be replaced with numbers
             word_patterns = {
-                1: [r'один', r"одного", r"одним"],
-                2: ['два', "двух", "двум", "двумя", "полутора", "полтора"],
-                3: ['три', "трех", "трем", "тремя"],
-                4: ['четыре', "четырех", "четырьмя"],
-                5: ['пять', "пяти", "пятью"],
-                6: ['шесть', "шести", "шестью"],
-                7: ['семь', "семи", "семью"],
-                8: ['восемь', "восьми", "восемью"],
-                9: ['девять', "девяти", "девятью"],
-                10: ['десять', "десяти", "десятью"]
+                1: [r"один", r"одного", r"одним"],
+                2: ["два", "двух", "двум", "двумя", "полутора", "полтора"],
+                3: ["три", "трех", "трем", "тремя"],
+                4: ["четыре", "четырех", "четырьмя"],
+                5: ["пять", "пяти", "пятью"],
+                6: ["шесть", "шести", "шестью"],
+                7: ["семь", "семи", "семью"],
+                8: ["восемь", "восьми", "восемью"],
+                9: ["девять", "девяти", "девятью"],
+                10: ["десять", "десяти", "десятью"],
             }
 
             # Replace word patterns with numbers
             for number, patterns in word_patterns.items():
                 for pattern in patterns:
-                    text = re.sub(pattern + r'\W', f"{number} ", text, flags=re.IGNORECASE)
+                    text = re.sub(pattern + r"\W", f"{number} ", text, flags=re.IGNORECASE)
 
             # Replace specific patterns
             replacements = [
-                (r'(от|до|более|больше|менее)\s*год(а)', r'\1 1 год'),
-                (r'\d{1,2}\s{0,2}месяц', '1 год'),
-                (r'[2-9]\d{1,3}', '')
+                (r"(от|до|более|больше|менее)\s*год(а)", r"\1 1 год"),
+                (r"\d{1,2}\s{0,2}месяц", "1 год"),
+                (r"[2-9]\d{1,3}", ""),
             ]
-            
+
             for pattern, replacement in replacements:
                 text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
 
             # Extract experience ranges
             experience_patterns = [
-                r'от\s*года',
-                r'(?:(от|более|не менее)\s{0,5})(\d{1,2})(?:-(?:го|й|х|и|ти))?(?:\s*(?:до|–|-)\s*(\d{1,2})(?:-(?:го|й|х|и))?)',
-                r'(?:(от|более|не менее)\s{0,5})(\d{1,2})\s{0,5}(год|лет)',
-                r'(\d{1,2})\+\s{0,5}(год|лет)',
-                r'(\d{1,2})(?:-?(?:го|й|х|и|ти))?\s*(год|лет)'
+                r"от\s*года",
+                r"(?:(от|более|не менее)\s{0,5})(\d{1,2})(?:-(?:го|й|х|и|ти))?(?:\s*(?:до|–|-)\s*(\d{1,2})(?:-(?:го|й|х|и))?)",
+                r"(?:(от|более|не менее)\s{0,5})(\d{1,2})\s{0,5}(год|лет)",
+                r"(\d{1,2})\+\s{0,5}(год|лет)",
+                r"(\d{1,2})(?:-?(?:го|й|х|и|ти))?\s*(год|лет)",
             ]
 
             all_matches = []
@@ -150,14 +168,14 @@ class FeatureBuilder:
             # Process matches
             numbers = set()
             for match in all_matches:
-                numbers.update(int(num) for num in re.findall(r'\d+', ' '.join(match)))
+                numbers.update(int(num) for num in re.findall(r"\d+", " ".join(match)))
 
             if not numbers:
                 return None, None
-                
+
             min_exp = min(numbers)
             max_exp = max(numbers)
-            
+
             return min_exp, -1 if min_exp == max_exp else max_exp
 
         except Exception as e:
@@ -168,14 +186,20 @@ class FeatureBuilder:
         """Fill missing experience values based on description."""
         try:
             logger.info("Filling missing experience data...")
-            empty_experience_mask = self.data['experience_from'].isna()
-            
+            empty_experience_mask = self.data["experience_from"].isna()
+
             # Apply extract_numbers to descriptions where experience is missing
-            extracted_values = self.data.loc[empty_experience_mask, 'description'].apply(self.extract_numbers)
-            
-            self.data.loc[empty_experience_mask, 'experience_from'] = extracted_values.apply(lambda x: x[0])
-            self.data.loc[empty_experience_mask, 'experience_to'] = extracted_values.apply(lambda x: x[1])
-            
+            extracted_values = self.data.loc[empty_experience_mask, "description"].apply(
+                self.extract_numbers
+            )
+
+            self.data.loc[empty_experience_mask, "experience_from"] = extracted_values.apply(
+                lambda x: x[0]
+            )
+            self.data.loc[empty_experience_mask, "experience_to"] = extracted_values.apply(
+                lambda x: x[1]
+            )
+
             logger.info(f"Filled {empty_experience_mask.sum()} missing experience values.")
         except Exception as e:
             logger.error(f"Failed to fill missing experience: {str(e)}")
@@ -185,21 +209,24 @@ class FeatureBuilder:
         """Fill missing experience values based on median experience per grade."""
         try:
             logger.info("Filling missing experience based on grade...")
-            empty_experience_mask = self.data['experience_from'].isna()
-            empty_grade_mask = self.data['grade'].isna()
-            
+            empty_experience_mask = self.data["experience_from"].isna()
+            empty_grade_mask = self.data["grade"].isna()
+
             # Calculate median experience by grade
             grouped_by_grade = (
                 self.data[~empty_experience_mask & ~empty_grade_mask]
-                .groupby('grade')[['experience_from', 'experience_to']]
+                .groupby("grade")[["experience_from", "experience_to"]]
                 .median()
             )
 
             # Fill missing values based on grade medians
             for grade, (experience_from, experience_to) in grouped_by_grade.iterrows():
-                mask = (self.data['grade'] == grade) & empty_experience_mask
-                self.data.loc[mask, ['experience_from', 'experience_to']] = experience_from, experience_to
-                
+                mask = (self.data["grade"] == grade) & empty_experience_mask
+                self.data.loc[mask, ["experience_from", "experience_to"]] = (
+                    experience_from,
+                    experience_to,
+                )
+
             logger.info("Missing experience based on grade filled successfully.")
         except Exception as e:
             logger.error(f"Failed to fill experience by grade: {str(e)}")
@@ -209,7 +236,7 @@ class FeatureBuilder:
         """Adjust the upper bound of experience to 10 if not specified."""
         try:
             logger.info("Adjusting upper bound of experience...")
-            self.data['experience_to_adjusted_10'] = self.data['experience_to'].apply(
+            self.data["experience_to_adjusted_10"] = self.data["experience_to"].apply(
                 lambda x: 10 if x == -1 else x
             )
             logger.info("Upper bound of experience adjusted successfully.")
@@ -221,41 +248,42 @@ class FeatureBuilder:
         """Add a feature for the description length (in number of words)."""
         try:
             logger.info("Adding description size (word count)...")
-            self.data['description_size'] = (
-                self.data['description_no_numbers_with_skills']
-                .str.split()
-                .str.len()
+            self.data["description_size"] = (
+                self.data["description_no_numbers_with_skills"].str.split().str.len()
             )
             logger.info("Description size added successfully.")
         except Exception as e:
             logger.error(f"Failed to add description size: {str(e)}")
             raise
-    
+
     def add_title_company_location_skills_source_feature(self) -> None:
         """Add a feature for combined title, company, location, skills, and source."""
         try:
             logger.info("Adding combined title, company, location, skills, and source feature...")
             template = (
-            "Позиция: {position}\n"
-            "Компания: {company}\n"
-            "Место: {location}\n"
-            "Навыки: {skills}\n"
-            "Источник: {source}"
+                "Позиция: {position}\n"
+                "Компания: {company}\n"
+                "Место: {location}\n"
+                "Навыки: {skills}\n"
+                "Источник: {source}"
             )
-            self.data['title_company_location_skills_source'] = self.data.apply(
-            lambda x: template.format(
-                position=x['title'],
-                company=x['company'],
-                location=x['location'],
-                skills=x['skills'],
-                source=x['source']
-            ), axis=1
+            self.data["title_company_location_skills_source"] = self.data.apply(
+                lambda x: template.format(
+                    position=x["title"],
+                    company=x["company"],
+                    location=x["location"],
+                    skills=x["skills"],
+                    source=x["source"],
+                ),
+                axis=1,
             )
             logger.info("Title, company, location, skills, and source feature added successfully.")
         except Exception as e:
-            logger.error(f"Failed to add title, company, location, skills, and source feature: {str(e)}")
+            logger.error(
+                f"Failed to add title, company, location, skills, and source feature: {str(e)}"
+            )
             raise
-    
+
     def add_query_prefix_to_text_features(self) -> None:
         """Add 'query: ' prefix to text features."""
         try:
@@ -266,16 +294,16 @@ class FeatureBuilder:
         except Exception as e:
             logger.error(f"Failed to add 'query: ' prefix to text features: {str(e)}")
             raise
-    
+
     def tokenize_and_save_transformer_features_to_pt(self) -> None:
         """Tokenize text features for a transformer model and save them separately as Torch files."""
         try:
             logger.info("Tokenizing and saving text features...")
             for feature_processing_dict in self.transformer_feature_processing:
-                feature = feature_processing_dict['name']
-                max_len = feature_processing_dict['max_len']
+                feature = feature_processing_dict["name"]
+                max_len = feature_processing_dict["max_len"]
 
-                feature_path = feature_processing_dict['path']
+                feature_path = feature_processing_dict["path"]
 
                 logger.info(f"Processing feature: {feature}")
                 tokenized_data = self.tokenizer_transformer(
@@ -283,7 +311,7 @@ class FeatureBuilder:
                     max_length=max_len,
                     padding="max_length",
                     truncation=True,
-                    return_tensors="pt"
+                    return_tensors="pt",
                 )
 
                 torch.save(tokenized_data, feature_path)
@@ -292,7 +320,6 @@ class FeatureBuilder:
         except Exception as e:
             logger.error(f"Failed to tokenize and save text features: {str(e)}")
             raise
-
 
     def process_features(self) -> None:
         """Process all features in sequence."""
@@ -320,10 +347,10 @@ class FeatureBuilder:
         """Save the processed target data to a Torch and CSV files."""
         try:
             logger.info("Saving target data to PT file...")
-            torch.save(self.data[[self.target_name]].values, self.target_output_path + '.pt')
+            torch.save(self.data[[self.target_name]].values, self.target_output_path + ".pt")
             logger.info(f"Target data saved successfully to {self.target_output_path + '.pt'}.")
             logger.info("Saving target data to CSV file...")
-            self.data[[self.target_name]].to_csv(self.target_output_path + '.csv', index=False)
+            self.data[[self.target_name]].to_csv(self.target_output_path + ".csv", index=False)
             logger.info(f"Target data saved successfully to {self.target_output_path + '.csv'}.")
         except Exception as e:
             logger.error(f"Failed to save target data: {str(e)}")
