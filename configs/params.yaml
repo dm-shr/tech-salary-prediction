@@ -4,16 +4,16 @@ is_test: false
 scraping:
   headhunter:
     enabled: true
-    data_dir: "data/raw/hh"
-    start_date: null  # will default to 2 days ago
-    end_date: null  # will default to today
-    per_page: 10
-    max_pages: 10
+    output_filename_base: "data/raw/headhunter/raw"
+    start_date: null  # will default to 1 day ago, format as "YYYY-MM-DD"
+    end_date: null  # will default to today, format as "YYYY-MM-DD"
+    per_page: 5
+    max_pages: 2
 
   getmatch:
     enabled: true
-    data_dir: "data/raw/getmatch"
-    num_pages: 10
+    output_filename_base: "data/raw/getmatch/raw"
+    num_pages: 2
     output_format: "csv"
 
 # Data Preprocessing
