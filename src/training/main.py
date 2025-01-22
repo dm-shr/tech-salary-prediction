@@ -63,10 +63,9 @@ def main():
     )
 
     # Log metrics and parameters to MLflow
-    experiment_name = config["logging"]["mlflow"]["experiment_name"]
     run_name = f"{config['models']['blended']['mlflow_run_name']}_{week_suffix}"
 
-    with mlflow.start_run(run_id=run_name, experiment_id=experiment_name):
+    with mlflow.start_run(run_name=run_name):
         # Log parameters
         mlflow.log_param("best_epoch", results["best_epoch"])
         mlflow.log_param("blend_weight_catboost", catboost_weight)

@@ -115,7 +115,7 @@ models:
     num_epochs_test: 2
     weight_decay: 1e-2
     loss_function: "huber" # [mse, huber]
-    save_path: "models/transformer/model.pt"
+    save_base: "models/transformer/transformer"
     y_pred_base: "data/predictions/transformer/y_pred"
     y_true_base: "data/predictions/transformer/y_true"
 

@@ -27,7 +27,8 @@ def main():
     week_info = current_week_info()
     week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
 
-    with mlflow.start_run(run_name="transformer_training") as _:
+    run_name = f"{config['models']['transformer']['mlflow_run_name']}_{week_suffix}"
+    with mlflow.start_run(run_name=run_name) as _:
         # log seeds, test size
         mlflow.log_params(config["training"])
 
