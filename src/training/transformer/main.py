@@ -4,13 +4,13 @@ import torch
 import torch.nn as nn
 from sklearn.model_selection import train_test_split
 
-from src.models.transformer.dataset import split_tokenized_dict
-from src.models.transformer.model import SingleBERTWithMLP
-from src.models.transformer.train import fit_eval
-from src.models.transformer.utils import log_metrics_to_mlflow
-from src.models.transformer.utils import log_seed_metrics_and_plot
-from src.models.utils import set_seed
-from src.models.utils import setup_mlflow
+from src.training.transformer.dataset import split_tokenized_dict
+from src.training.transformer.model import SingleBERTWithMLP
+from src.training.transformer.train import fit_eval
+from src.training.transformer.utils import log_metrics_to_mlflow
+from src.training.transformer.utils import log_seed_metrics_and_plot
+from src.training.utils import set_seed
+from src.training.utils import setup_mlflow
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 

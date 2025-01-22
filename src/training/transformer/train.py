@@ -4,7 +4,7 @@ from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
 from torch.utils.data import DataLoader
 
-from src.models.transformer.dataset import DualTextDataset
+from src.training.transformer.dataset import DualTextDataset
 
 
 def fit_eval_legacy(
