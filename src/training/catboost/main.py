@@ -2,14 +2,14 @@
 import numpy as np
 from sklearn.model_selection import train_test_split
 
-from src.models.catboost.model import get_model_config
-from src.models.catboost.model import save_model
-from src.models.catboost.model import train_and_evaluate_with_metrics
-from src.models.catboost.utils import create_pool_data
-from src.models.catboost.utils import display_metrics_with_ci
-from src.models.catboost.utils import load_data
-from src.models.catboost.utils import save_history
-from src.models.utils import setup_mlflow
+from src.training.catboost.model import get_model_config
+from src.training.catboost.model import save_model
+from src.training.catboost.model import train_and_evaluate_with_metrics
+from src.training.catboost.utils import create_pool_data
+from src.training.catboost.utils import display_metrics_with_ci
+from src.training.catboost.utils import load_data
+from src.training.catboost.utils import save_history
+from src.training.utils import setup_mlflow
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 

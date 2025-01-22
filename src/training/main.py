@@ -1,9 +1,9 @@
 import numpy as np
 
-from src.models.blend import blend_and_evaluate
-from src.models.catboost.main import main as train_catboost
-from src.models.transformer.main import main as train_transformer
-from src.models.utils import setup_mlflow
+from src.training.blend import blend_and_evaluate
+from src.training.catboost.main import main as train_catboost
+from src.training.transformer.main import main as train_transformer
+from src.training.utils import setup_mlflow
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 
