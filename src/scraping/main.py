@@ -13,7 +13,9 @@ def create_directories(config: Dict[str, Any]):
     """Create necessary directories if they don't exist."""
     for source in ["headhunter", "getmatch"]:
         if config.get(source, {}).get("enabled", False):
-            os.makedirs(config[source]["data_dir"], exist_ok=True)
+            # use output_filename_base to create data_dir
+            data_dir = config[source]["output_filename_base"].split("/")[0]
+            os.makedirs(data_dir, exist_ok=True)
 
 
 def run_scrapers(config: Dict[str, Any], logger: logging.Logger):
@@ -24,7 +26,7 @@ def run_scrapers(config: Dict[str, Any], logger: logging.Logger):
         try:
             hh_config = config["headhunter"]
             scraper = HeadhunterJobScraper(
-                data_dir=hh_config["data_dir"],
+                output_filename_base=hh_config["output_filename_base"],
                 start_date=hh_config["start_date"],
                 end_date=hh_config["end_date"],
                 per_page=hh_config["per_page"],
@@ -41,7 +43,7 @@ def run_scrapers(config: Dict[str, Any], logger: logging.Logger):
         try:
             gm_config = config["getmatch"]
             scraper = GetmatchJobScraper(
-                data_dir=gm_config["data_dir"],
+                output_filename_base=gm_config["output_filename_base"],
                 num_pages=gm_config["num_pages"],
                 output_format=gm_config["output_format"],
             )

@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 import time
 from datetime import datetime
@@ -11,15 +10,17 @@ import pandas as pd
 import requests
 from bs4 import BeautifulSoup
 
+from src.utils.utils import current_week_info
+
 
 class GetmatchJobScraper:
     def __init__(
         self,
-        data_dir: str = os.path.join("data", "raw", "getmatch"),
+        output_filename_base: str,
         num_pages: int = 5,
         output_format: str = "csv",
     ):
-        self.DATA_DIR = data_dir
+        self.filename_base = output_filename_base
         self.base_url = "https://getmatch.ru/vacancies"
         self.headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
@@ -239,17 +240,18 @@ class GetmatchJobScraper:
             time.sleep(2)
 
         if all_jobs:
-            # timestamp = time.strftime("%Y%m%d_%H%M%S")
-            output_file = os.path.join(self.DATA_DIR, "raw")
+            week_info = current_week_info()
+            output_filename = (
+                f"{self.filename_base}_week_{week_info['week_number']}_year_{week_info['year']}"
+            )
+
             if self.output_format == "csv":
                 df = pd.DataFrame(all_jobs)
-                # filename = f'job_descriptions_{timestamp}.csv'
-                filename = output_file + ".csv"
+                filename = f"{output_filename}.csv"
                 df.to_csv(filename, index=False, encoding="utf-8")
                 self.logger.info(f"Saved {len(all_jobs)} job descriptions to {filename}")
             elif self.output_format == "json":
-                # filename = f'job_descriptions_{timestamp}.json'
-                filename = output_file + ".json"
+                filename = f"{output_filename}.json"
                 pd.DataFrame(all_jobs).to_json(
                     filename, orient="records", force_ascii=False, indent=2
                 )
@@ -263,5 +265,7 @@ class GetmatchJobScraper:
 
 # for testing purposes
 if __name__ == "__main__":
-    scraper = GetmatchJobScraper(num_pages=1, output_format="csv")
+    scraper = GetmatchJobScraper(
+        output_filename_base="data/raw/getmatch/raw", num_pages=1, output_format="csv"
+    )
     scraper.scrape()

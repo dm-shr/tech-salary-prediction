@@ -10,22 +10,35 @@ import requests
 from bs4 import BeautifulSoup
 from tqdm import tqdm
 
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
+
 
 class HeadhunterJobScraper:
     def __init__(
         self,
-        data_dir=os.path.join("data", "raw", "source1"),
+        output_filename_base="data",
         start_date=None,
         end_date=None,
         per_page=5,
         max_pages=2,
     ):
-        self.DATA_DIR = data_dir
-        self.DATE_FORMAT = "%Y-%m-%d"
-        self.START_DATE = start_date or (datetime.now() - timedelta(days=2)).strftime(
-            self.DATE_FORMAT
+        week_info = current_week_info()
+        self.filename = (
+            f"{output_filename_base}_week_{week_info['week_number']}_year_{week_info['year']}"
         )
-        self.END_DATE = end_date or datetime.now().strftime(self.DATE_FORMAT)
+        self.DATE_FORMAT = "%Y-%m-%d"
+        if isinstance(start_date, str):
+            self.START_DATE = datetime.strptime(start_date, self.DATE_FORMAT).strftime(
+                self.DATE_FORMAT
+            )
+        else:
+            self.START_DATE = (datetime.now() - timedelta(days=1)).strftime(self.DATE_FORMAT)
+
+        if isinstance(end_date, str):
+            self.END_DATE = datetime.strptime(end_date, self.DATE_FORMAT).strftime(self.DATE_FORMAT)
+        else:
+            self.END_DATE = datetime.now().strftime(self.DATE_FORMAT)
+
         self.PER_PAGE = per_page
         self.MAX_PAGES = max_pages
         self.PROFESSIONAL_ROLES = [
@@ -243,12 +256,12 @@ class HeadhunterJobScraper:
 
         processed_vacancies = self.process_vacancies(russian_vacancies)
 
-        output_file = os.path.join(self.DATA_DIR, "raw.csv")
+        output_file = f"{self.filename}.csv"
         self.save_to_csv(processed_vacancies, output_file)
         print(f"Data collection completed. Results saved to {output_file}")
 
 
 # for testing purposes
 if __name__ == "__main__":
-    scraper = HeadhunterJobScraper()
+    scraper = HeadhunterJobScraper(output_filename_base="data/raw/hh/raw", max_pages=1, per_page=5)
     scraper.scrape()
