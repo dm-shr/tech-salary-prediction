@@ -183,11 +183,11 @@ class GetmatchJobScraper:
             for card in job_cards:
                 # get published_at date from element div class="b-vacancy-card-header__publish-date"
                 published_at_elem = card.find("div", class_="b-vacancy-card-header__publish-date")
-                published_at = datetime.now().strftime("%d.%m.%Y")
+                published_at = datetime.now().strftime("%Y-%m-%d")
                 if published_at_elem:
                     published_at = published_at_elem.text.strip()
                     if "сегодня" in published_at:
-                        published_at = datetime.now().strftime("%d.%m.%Y")
+                        published_at = datetime.now().strftime("%Y-%m-%d")
                     else:  # format of '16 января 2025 г.', convert it
                         day, month, year, _ = published_at.split()
                         month = {
@@ -206,7 +206,7 @@ class GetmatchJobScraper:
                         }[month]
                         published_at = f"{day}.{month}.{year}"
                         published_at = datetime.strptime(published_at, "%d.%m.%Y").strftime(
-                            "%d.%m.%Y"
+                            "%Y-%m-%d"
                         )
 
                 published_at_dates.append(published_at)

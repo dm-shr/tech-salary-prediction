@@ -222,11 +222,12 @@ class HeadhunterJobScraper:
                         "published_at", None
                     )  # format = 2024-10-31T14:45:21+0300, convert to a datetime object
                     if published_at is None:
-                        published_at = datetime.now().strftime("%d.%m.%Y")
+                        published_at = datetime.now().strftime(self.DATE_FORMAT)
+
                     else:
                         published_at = datetime.strptime(
                             published_at, "%Y-%m-%dT%H:%M:%S%z"
-                        ).strftime("%d.%m.%Y")
+                        ).strftime(self.DATE_FORMAT)
 
                     writer.writerow(
                         [
