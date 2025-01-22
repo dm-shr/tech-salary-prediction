@@ -11,6 +11,7 @@ from src.training.transformer.utils import log_metrics_to_mlflow
 from src.training.transformer.utils import log_seed_metrics_and_plot
 from src.training.utils import set_seed
 from src.training.utils import setup_mlflow
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 
@@ -21,19 +22,24 @@ mlflow = setup_mlflow(config)
 
 def main():
     logger = setup_logging()
+
+    # Get current week info for file naming
+    week_info = current_week_info()
+    week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
+
     with mlflow.start_run(run_name="transformer_training") as _:
         # log seeds, test size
         mlflow.log_params(config["training"])
 
-        # Load tokenized data
+        # Load tokenized data with week suffix
         logger.info("Loading tokenized data...")
-        tokenized_feature1_path = config["features"]["transformer"]["feature_processing"][0]["path"]
-        tokenized_feature2_path = config["features"]["transformer"]["feature_processing"][1]["path"]
-        tokenized_feature1 = torch.load(tokenized_feature1_path)
-        tokenized_feature2 = torch.load(tokenized_feature2_path)
+        tokenized_feature1_base = config["features"]["transformer"]["feature_processing"][0]["base"]
+        tokenized_feature2_base = config["features"]["transformer"]["feature_processing"][1]["base"]
+        tokenized_feature1 = torch.load(f"{tokenized_feature1_base}_{week_suffix}.pt")
+        tokenized_feature2 = torch.load(f"{tokenized_feature2_base}_{week_suffix}.pt")
 
-        # Load targets
-        targets = torch.load(config["features"]["target_path"] + ".pt")
+        # Load targets with week suffix
+        targets = torch.load(f"{config['features']['target_base']}_{week_suffix}.pt")
 
         # get seeds
         main_seed = config["training"]["main_seed"]
@@ -149,13 +155,13 @@ def main():
         logger.info("Computing aggregate metrics across seeds...")
         log_seed_metrics_and_plot(results, mlflow, logger)
 
-        # save y_pred and y_true as arrays for later use
+        # save y_pred and y_true as arrays with week suffix
         y_pred = np.array(y_pred)
-        y_pred_path = config["models"]["transformer"]["y_pred_path"]
         y_true = np.array(y_true)
-        y_true_path = config["models"]["transformer"]["y_true_path"]
-        np.save(y_pred_path, y_pred)
-        np.save(y_true_path, y_true)
+        y_pred_base = config["models"]["transformer"]["y_pred_base"]
+        y_true_base = config["models"]["transformer"]["y_true_base"]
+        np.save(f"{y_pred_base}_{week_suffix}.npy", y_pred)
+        np.save(f"{y_true_base}_{week_suffix}.npy", y_true)
 
         # Train final model on full dataset
         logger.info("Training final model on complete dataset...")
@@ -184,8 +190,9 @@ def main():
         results["final"] = history
         log_metrics_to_mlflow(history, "final")
 
-        # Save the model
-        torch.save(final_model.state_dict(), config["models"]["transformer"]["save_path"])
+        # Save the model with week suffix
+        save_path = f"{config['models']['transformer']['save_base']}_{week_suffix}.pt"
+        torch.save(final_model.state_dict(), save_path)
         logger.info("Pipeline complete.")
         return results
 

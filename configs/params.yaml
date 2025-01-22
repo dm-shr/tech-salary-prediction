@@ -66,10 +66,10 @@ features:
     feature_processing:
       - name: "description_no_numbers"
         max_len: 512
-        path: "data/processed/transformer/description_no_numbers.pt"
+        base: "data/processed/transformer/description_no_numbers"
       - name: "title_company_location_skills_source"
         max_len: 256
-        path: "data/processed/transformer/title_company_location_skills_source.pt"
+        base: "data/processed/transformer/title_company_location_skills_source"
 
   bi_gru_cnn:
     features_dir: "data/processed/bi_gru_cnn"
