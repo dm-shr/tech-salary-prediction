@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from typing import Any
 from typing import Dict
 
@@ -22,3 +23,10 @@ def setup_logging():
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     return logging.getLogger(__name__)
+
+
+def current_week_info():
+    current_date = datetime.now()
+    week_number = current_date.isocalendar()[1]
+    year = current_date.year
+    return {"week_number": week_number, "year": year}
