@@ -1,6 +1,4 @@
 import re
-from typing import Dict
-from typing import List
 from typing import Optional
 from typing import Tuple
 
@@ -9,6 +7,7 @@ import pandas as pd
 import torch
 from transformers import AutoTokenizer
 
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 
@@ -27,12 +26,34 @@ class FeatureBuilder:
             self.config = config
 
             self.is_test = config["is_test"]
-            # Get paths from configuration
-            self.preprocessed_data_path = config["features"]["preprocessed_data_path"]
-            self.output_file_path = config["features"]["output_path"]
+
+            # Get current week info
+            week_info = current_week_info()
+            week_suffix = f"_week_{week_info['week_number']}_year_{week_info['year']}"
+
+            # Get paths from configuration and append week suffix
+            preprocessed_base = config["features"]["preprocessed_data_base"]
+            self.preprocessed_data_path = f"{preprocessed_base}{week_suffix}.csv"
+
+            output_base = config["features"]["output_base"]
+            self.output_file_path = f"{output_base}{week_suffix}.csv"
+
             self.target_name = config["features"]["target_name"]
-            self.target_output_path = config["features"]["target_path"]
-            # Get features to be kept
+            target_base = config["features"]["target_base"]
+            self.target_output_path = f"{target_base}{week_suffix}"
+
+            # Update transformer paths with week suffix
+            transformer_base = config["features"]["transformer"]["features_base"]
+            for item in config["features"]["transformer"]["feature_processing"]:
+                item["path"] = f"{transformer_base}/{item['name']}{week_suffix}.pt"
+            self.transformer_feature_processing = config["features"]["transformer"][
+                "feature_processing"
+            ]
+
+            # Update catboost path with week suffix
+            catboost_base = config["features"]["catboost"]["features_base"]
+            self.catboost_features_path = f"{catboost_base}{week_suffix}.csv"
+
             # Extract features from nested dictionary of features
 
             def extract_features(nested_dict):
@@ -45,7 +66,6 @@ class FeatureBuilder:
                         features.extend(value)
                 return features
 
-            # self.features = extract_features(config['features']['features'])
             self.catboost_features = extract_features(config["features"]["features"]["catboost"])
             # get text features
             self.text_features = (
@@ -68,14 +88,6 @@ class FeatureBuilder:
                 else config["features"]["transformer"]["tokenizer_test"]
             )
             self.tokenizer_transformer = AutoTokenizer.from_pretrained(tokenizer_name)
-
-            self.transformer_feature_processing: List[Dict] = config["features"]["transformer"][
-                "feature_processing"
-            ]
-
-            self.transformer_features_dir = config["features"]["transformer"]["features_dir"]
-
-            self.catboost_features_path = config["features"]["catboost"]["features_path"]
 
             # Load the data from the CSV file
             self.data = pd.read_csv(self.preprocessed_data_path)

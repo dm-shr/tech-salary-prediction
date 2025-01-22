@@ -30,10 +30,10 @@ preprocessing:
 
 # Feature Engineering
 features:
+  preprocessed_data_base: "data/preprocessed/preprocessed"
+  output_base: "data/processed/processed"
+  target_base: "data/processed/target/target"
   target_name: "log_salary_from"
-  target_path: "data/processed/target/target"
-  preprocessed_data_path: "data/preprocessed/preprocessed.csv"
-  output_path: "data/processed/processed.csv"
   features:
     catboost:
       text:
@@ -57,10 +57,9 @@ features:
         - "title_company_location_skills_source"
 
   catboost:
-    features_path: "data/processed/catboost/features.csv"
-
+    features_base: "data/processed/catboost/features"
   transformer:
-    features_dir: "data/processed/transformer"
+    features_base: "data/processed/transformer"
     tokenizer: "intfloat/multilingual-e5-small"
     tokenizer_test: "sergeyzh/rubert-tiny-turbo"
     add_query_prefix: true
