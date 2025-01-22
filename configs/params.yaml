@@ -116,8 +116,8 @@ models:
     weight_decay: 1e-2
     loss_function: "huber" # [mse, huber]
     save_path: "models/transformer/model.pt"
-    y_pred_path: "data/predictions/transformer/y_pred.npy"
-    y_true_path: "data/predictions/transformer/y_true.npy"
+    y_pred_base: "data/predictions/transformer/y_pred"
+    y_true_base: "data/predictions/transformer/y_true"
 
   blended:
     mlflow_run_name: "blended"

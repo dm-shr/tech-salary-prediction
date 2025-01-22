@@ -4,6 +4,7 @@ from src.training.blend import blend_and_evaluate
 from src.training.catboost.main import main as train_catboost
 from src.training.transformer.main import main as train_transformer
 from src.training.utils import setup_mlflow
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 
@@ -12,6 +13,10 @@ def main():
     config = load_config()
     logger = setup_logging()
     mlflow = setup_mlflow(config)
+
+    # Get current week info for file naming
+    week_info = current_week_info()
+    week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
 
     logger.info("Starting blended model training...")
 
@@ -23,11 +28,17 @@ def main():
     logger.info("Training Transformer model...")
     train_transformer()
 
-    # Load predictions and true values
-    catboost_predictions = np.load(config["models"]["catboost"]["y_pred_path"])
-    transformer_predictions = np.load(config["models"]["transformer"]["y_pred_path"])
-    y_true_catboost = np.load(config["models"]["catboost"]["y_true_path"])
-    y_true_transformer = np.load(config["models"]["transformer"]["y_true_path"])
+    # Load predictions and true values with week suffix
+    catboost_predictions = np.load(
+        f"{config['models']['catboost']['y_pred_base']}_{week_suffix}.npy"
+    )
+    transformer_predictions = np.load(
+        f"{config['models']['transformer']['y_pred_base']}_{week_suffix}.npy"
+    )
+    y_true_catboost = np.load(f"{config['models']['catboost']['y_true_base']}_{week_suffix}.npy")
+    y_true_transformer = np.load(
+        f"{config['models']['transformer']['y_true_base']}_{week_suffix}.npy"
+    )
 
     # Assert that true values match between models (allowing for small numerical differences)
     np.testing.assert_almost_equal(
@@ -53,7 +64,7 @@ def main():
 
     # Log metrics and parameters to MLflow
     experiment_name = config["logging"]["mlflow"]["experiment_name"]
-    run_name = config["models"]["blended"]["mlflow_run_name"]
+    run_name = f"{config['models']['blended']['mlflow_run_name']}_{week_suffix}"
 
     with mlflow.start_run(run_id=run_name, experiment_id=experiment_name):
         # Log parameters
