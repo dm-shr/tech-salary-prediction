@@ -97,8 +97,8 @@ models:
     loss_function: "RMSE"
     eval_metric: "R2"
     save_dir: "models/catboost"
-    y_pred_path: "data/predictions/catboost/y_pred.npy"
-    y_true_path: "data/predictions/catboost/y_true.npy"
+    y_pred_base: "data/predictions/catboost/y_pred"
+    y_true_base: "data/predictions/catboost/y_true"
 
   transformer:
     mlflow_run_name: "transformer"
