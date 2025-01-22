@@ -338,10 +338,9 @@ class FeatureBuilder:
         try:
             logger.info("Processing all features...")
             self.merge_skills_and_descriptions()
-            if not self.is_test:
-                self.fill_missing_experience()
-                self.fill_experience_by_grade()
-                self.adjust_experience_upper_bound()
+            self.fill_missing_experience()
+            self.fill_experience_by_grade()
+            self.adjust_experience_upper_bound()
             self.add_description_size_feature()
             self.add_title_company_location_skills_source_feature()
             if self.add_query_prefix:
