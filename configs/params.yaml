@@ -18,11 +18,12 @@ scraping:
 
 # Data Preprocessing
 preprocessing:
-  input_paths:
-    getmatch: "data/raw/getmatch/raw.csv"
-    hh: "data/raw/hh/raw.csv"
-  merged_path: "data/preprocessed/merged/merged.csv"
-  output_path: "data/preprocessed/preprocessed.csv"
+  input_filename_base:
+    getmatch: "data/raw/getmatch/raw"
+    headhunter: "data/raw/headhunter/raw"
+  merged_path: "data/preprocessed/merged/merged"
+  output_path: "data/preprocessed/preprocessed"
+  historical_data_path: "data/preprocessed/preprocessed_historical.csv"
   salary_outliers:
     bottom_percentile: 0.001
     top_percentile: 1.0    # Keep all high values

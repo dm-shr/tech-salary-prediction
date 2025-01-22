@@ -1,10 +1,14 @@
 import hashlib
+import os
 import re
+from datetime import datetime
+from datetime import timedelta
 from typing import Optional
 
 import numpy as np
 import pandas as pd
 
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 
@@ -19,14 +23,24 @@ class JobDataPreProcessor:
     ):
         # Load configuration
         config = load_config()
+        week_info = current_week_info()
 
         self.is_test = config["is_test"]
 
-        self.getmatch_path = config["preprocessing"]["input_paths"]["getmatch"]
-        self.hh_path = config["preprocessing"]["input_paths"]["hh"]
-        self.merged_path = config["preprocessing"]["merged_path"]
-        self.output_path = config["preprocessing"]["output_path"]
+        # Construct input paths with week and year
+        base_getmatch = config["preprocessing"]["input_filename_base"]["getmatch"]
+        base_headhunter = config["preprocessing"]["input_filename_base"]["headhunter"]
+        self.getmatch_path = (
+            f"{base_getmatch}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
+        )
+        self.headhunter_path = (
+            f"{base_headhunter}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
+        )
 
+        # Construct merged and output paths
+        self.merged_path = f"{config['preprocessing']['merged_path']}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
+        self.output_path = f"{config['preprocessing']['output_path']}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
+        self.historical_data_path = config["preprocessing"]["historical_data_path"]
         self.bottom_percentile = config["preprocessing"]["salary_outliers"]["bottom_percentile"]
         self.top_percentile = config["preprocessing"]["salary_outliers"]["top_percentile"]
 
@@ -73,7 +87,7 @@ class JobDataPreProcessor:
     def process(self):
         logger.info("Loading datasets...")
         getmatch = pd.read_csv(self.getmatch_path)
-        hh = pd.read_csv(self.hh_path)
+        headhunter = pd.read_csv(self.headhunter_path)
 
         # Process Getmatch
         logger.info("Processing Getmatch data...")
@@ -85,6 +99,7 @@ class JobDataPreProcessor:
             columns={"description_text": "description", "company_name": "company", "level": "grade"}
         )[
             [
+                "published_date",
                 "title",
                 "location",
                 "company",
@@ -101,15 +116,15 @@ class JobDataPreProcessor:
 
         getmatch_short["skills"] = getmatch_short["skills"].apply(self.list_to_string)
 
-        # Process HH
-        logger.info("Processing HH data...")
-        hh["source"] = "hh"
-        hh.rename(columns={"area": "location"}, inplace=True)
-        hh = hh[[col for col in hh.columns if col != "url"] + ["url"]]
+        # Process headhunter
+        logger.info("Processing headhunter data...")
+        headhunter["source"] = "headhunter"
+        headhunter.rename(columns={"area": "location"}, inplace=True)
+        headhunter = headhunter[[col for col in headhunter.columns if col != "url"] + ["url"]]
 
         # Merge datasets
         logger.info("Merging datasets...")
-        merged_data = pd.concat([getmatch_short, hh], ignore_index=True)
+        merged_data = pd.concat([getmatch_short, headhunter], ignore_index=True)
         logger.info(f"Length of merged data: {len(merged_data)}")
 
         # Save merged data
@@ -176,6 +191,29 @@ class JobDataPreProcessor:
         merged_data["description_no_numbers"] = merged_data["description"].apply(
             self.replace_salary_patterns
         )
+
+        logger.info(f"Length of current data after cleaning: {len(merged_data)}")
+
+        # Merge with historical data and filter
+        logger.info("Loading and merging with historical data...")
+        if os.path.exists(self.historical_data_path):
+            historical_data = pd.read_csv(self.historical_data_path)
+            logger.info(f"Length of historical data: {len(historical_data)}")
+            merged_data["description"] = merged_data["description"] + "asaasd"
+            merged_data = pd.concat([historical_data, merged_data], ignore_index=True)
+
+            # Filter out entries older than 6 months
+            merged_data["published_date"] = pd.to_datetime(merged_data["published_date"])
+            cutoff_date = datetime.now() - timedelta(days=180)
+            merged_data = merged_data[merged_data["published_date"] >= cutoff_date]
+            logger.info(f"Length of data after filtering old entries: {len(merged_data)}")
+
+            # Sort by date and remove duplicates, keeping latest entries
+            merged_data = merged_data.sort_values("published_date", ascending=False)
+            merged_data.drop_duplicates(
+                subset=["description", "company", "title"], keep="first", inplace=True
+            )
+            logger.info(f"Length of data after duplicates removal: {len(merged_data)}")
 
         # Save the processed data
         logger.info(f"Length of data after cleaning: {len(merged_data)}")
