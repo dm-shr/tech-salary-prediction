@@ -10,6 +10,7 @@ from src.training.catboost.utils import display_metrics_with_ci
 from src.training.catboost.utils import load_data
 from src.training.catboost.utils import save_history
 from src.training.utils import setup_mlflow
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 
@@ -19,6 +20,10 @@ def main():
     config = load_config()
     mlflow = setup_mlflow(config)
     logger = setup_logging()
+
+    # Get current week info for file naming
+    week_info = current_week_info()
+    week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
 
     with mlflow.start_run(run_name="catboost_training") as _:
         # log seeds, test size
@@ -73,18 +78,22 @@ def main():
         logger.info("Training-evaluation complete. displaying metrics...")
         # Log metrics with CI and the R2 plot
         display_metrics_with_ci(history, logger, mlflow)
-        # Save history of the performance metrics
+        # Save history of the performance metrics with week suffix
         logger.info("Saving history of the performance metrics...")
-        save_history(history, config["models"]["catboost"]["save_dir"], "catboost")
+        save_history(
+            history,
+            config["models"]["catboost"]["save_dir"],
+            f"catboost_{week_suffix}",
+        )
 
-        # save y_true and y_pred for the seeds for further analysis
+        # save y_true and y_pred with week suffix
         logger.info("Saving predictions")
         y_true_combined = np.array(y_true_combined)
         y_pred_combined = np.array(y_pred_combined)
-        y_true_path = config["models"]["catboost"]["y_true_path"]
-        y_pred_path = config["models"]["catboost"]["y_pred_path"]
-        np.save(y_true_path, y_true_combined)
-        np.save(y_pred_path, y_pred_combined)
+        y_true_base = config["models"]["catboost"]["y_true_base"]
+        y_pred_base = config["models"]["catboost"]["y_pred_base"]
+        np.save(f"{y_true_base}_{week_suffix}.npy", y_true_combined)
+        np.save(f"{y_pred_base}_{week_suffix}.npy", y_pred_combined)
 
         # Train model on the entire dataset with main_seed
         logger.info("\nTraining final model on the full dataset...")
@@ -114,8 +123,8 @@ def main():
         for metric_name, value in final_train_metrics.items():
             logger.info(f"{metric_name.upper()} = {value:.4f}")
 
-        # Save final model
-        save_model(model, config, "catboost")
+        # Save final model with week suffix
+        save_model(model, config, f"catboost_{week_suffix}")
 
         logger.info("Training complete.")
 

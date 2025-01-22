@@ -10,7 +10,9 @@ import pandas as pd
 from catboost import Pool
 from scipy.stats import t
 
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
+
 
 config = load_config()
 
@@ -62,9 +64,13 @@ def load_data(config):
     Returns:
         Features and target data
     """
+    # Get current week info
+    week_info = current_week_info()
+    week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
+
     # Load preprocessed data
-    data_path = config["features"]["catboost"]["features_path"]
-    target_path = config["features"]["target_path"] + ".csv"
+    data_path = config["features"]["catboost"]["features_base"] + f"_{week_suffix}.csv"
+    target_path = config["features"]["target_base"] + f"_{week_suffix}.csv"
 
     data = pd.read_csv(data_path)
     target = pd.read_csv(target_path)
