@@ -6,7 +6,6 @@ from typing import Dict
 from src.scraping.getmatch import GetmatchJobScraper
 from src.scraping.headhunter import HeadhunterJobScraper
 from src.utils.utils import load_config
-from src.utils.utils import setup_logging
 
 
 def create_directories(config: Dict[str, Any]):
@@ -26,6 +25,7 @@ def run_scrapers(config: Dict[str, Any], logger: logging.Logger):
         try:
             hh_config = config["headhunter"]
             scraper = HeadhunterJobScraper(
+                logger=logger,
                 output_filename_base=hh_config["output_filename_base"],
                 start_date=hh_config["start_date"],
                 end_date=hh_config["end_date"],
@@ -43,6 +43,7 @@ def run_scrapers(config: Dict[str, Any], logger: logging.Logger):
         try:
             gm_config = config["getmatch"]
             scraper = GetmatchJobScraper(
+                logger=logger,
                 output_filename_base=gm_config["output_filename_base"],
                 num_pages=gm_config["num_pages"],
                 output_format=gm_config["output_format"],
@@ -53,9 +54,8 @@ def run_scrapers(config: Dict[str, Any], logger: logging.Logger):
             logger.error(f"Error during GetMatch scraping: {str(e)}")
 
 
-def main():
+def main(logger: logging.Logger):
     """Main function to orchestrate the scraping process."""
-    logger = setup_logging()
     logger.info("Starting scraping process...")
 
     try:
@@ -73,7 +73,3 @@ def main():
     except Exception as e:
         logger.error(f"Fatal error in scraping process: {str(e)}")
         raise
-
-
-if __name__ == "__main__":
-    main()

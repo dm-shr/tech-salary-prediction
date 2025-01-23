@@ -1,4 +1,5 @@
 import csv
+import logging
 import os
 import random
 import re
@@ -16,12 +17,14 @@ from src.utils.utils import current_week_info  # dict with keys 'week_number' an
 class HeadhunterJobScraper:
     def __init__(
         self,
+        logger: logging.Logger,
         output_filename_base="data",
         start_date=None,
         end_date=None,
         per_page=5,
         max_pages=2,
     ):
+        self.logger = logger
         week_info = current_week_info()
         self.filename = (
             f"{output_filename_base}_week_{week_info['week_number']}_year_{week_info['year']}"
@@ -81,7 +84,7 @@ class HeadhunterJobScraper:
 
     def get_russian_area_ids(self):
         url = "https://api.hh.ru/areas"
-        response = requests.get(url, headers=self.HEADERS)
+        response = requests.get(url, headers=self.HEADERS, timeout=60)
         if response.status_code == 200:
             areas = response.json()
             russian_area_ids = set()
@@ -113,8 +116,8 @@ class HeadhunterJobScraper:
                     return response.json()
                 time.sleep(1)
             except requests.RequestException as e:
-                print(f"Request failed: {e}. Retrying...")
-                time.sleep(1)
+                self.logger.info(f"Request failed: {e}. Retrying...")
+                time.sleep(5)
         return {"items": []}
 
     def get_vacancy_details(self, vacancy_id):
@@ -126,7 +129,7 @@ class HeadhunterJobScraper:
                     return response.json()
                 time.sleep(1)
             except requests.RequestException as e:
-                print(f"Request failed: {e}. Retrying...")
+                self.logger.info(f"Request failed: {e}. Retrying...")
                 time.sleep(1)
         return {"id": vacancy_id, "error": "Failed after retries"}
 
@@ -247,11 +250,11 @@ class HeadhunterJobScraper:
                     )
 
     def scrape(self):
-        print("Starting data collection...")
+        self.logger.info("Starting data collection...")
         russian_area_ids = self.get_russian_area_ids()
         vacancies = self.collect_vacancies()
 
-        print("Processing and filtering vacancies...")
+        self.logger.info("Processing and filtering vacancies...")
         unique_vacancies = self.remove_duplicates(vacancies)
         russian_vacancies = [v for v in unique_vacancies if v["area"]["id"] in russian_area_ids]
 
@@ -259,10 +262,4 @@ class HeadhunterJobScraper:
 
         output_file = f"{self.filename}.csv"
         self.save_to_csv(processed_vacancies, output_file)
-        print(f"Data collection completed. Results saved to {output_file}")
-
-
-# for testing purposes
-if __name__ == "__main__":
-    scraper = HeadhunterJobScraper(output_filename_base="data/raw/hh/raw", max_pages=1, per_page=5)
-    scraper.scrape()
+        self.logger.info(f"Data collection completed. Results saved to {output_file}")

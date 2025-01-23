@@ -1,4 +1,6 @@
 # transformer main.py
+import logging
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -13,16 +15,13 @@ from src.training.utils import set_seed
 from src.training.utils import setup_mlflow
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
-from src.utils.utils import setup_logging
 
 
 config = load_config()
 mlflow = setup_mlflow(config)
 
 
-def main(enabled=True):
-    logger = setup_logging()
-
+def main(logger: logging.Logger, enabled=True):
     # Get current week info for file naming
     week_info = current_week_info()
     week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
@@ -209,7 +208,3 @@ def main(enabled=True):
         torch.save(final_model.state_dict(), save_path)
         logger.info("Pipeline complete.")
         return results
-
-
-if __name__ == "__main__":
-    main()

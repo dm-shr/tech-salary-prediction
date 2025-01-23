@@ -1,3 +1,5 @@
+import logging
+
 import numpy as np
 
 from src.training.blend import blend_and_evaluate
@@ -6,12 +8,10 @@ from src.training.transformer.main import main as train_transformer
 from src.training.utils import setup_mlflow
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
-from src.utils.utils import setup_logging
 
 
-def main():
+def main(logger: logging.Logger):
     config = load_config()
-    logger = setup_logging()
     mlflow = setup_mlflow(config)
 
     # Get current week info for file naming
@@ -22,7 +22,7 @@ def main():
 
     # Train CatBoost Model
     logger.info("Training CatBoost model...")
-    train_catboost()
+    train_catboost(logger)
 
     if not config["models"]["transformer"]["enabled"]:
         logger.info("Transformer is disabled. Saving mock data...")
@@ -34,7 +34,7 @@ def main():
 
     # Train Transformer Model
     logger.info("Training Transformer model...")
-    train_transformer()
+    train_transformer(logger)
 
     # Load predictions and true values with week suffix
     catboost_predictions = np.load(
@@ -95,7 +95,3 @@ def main():
 
     logger.info("Blended model evaluation complete.")
     logger.info("Training complete.")
-
-
-if __name__ == "__main__":
-    main()

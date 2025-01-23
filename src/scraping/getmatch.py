@@ -16,6 +16,7 @@ from src.utils.utils import current_week_info
 class GetmatchJobScraper:
     def __init__(
         self,
+        logger: logging.Logger,
         output_filename_base: str,
         num_pages: int = 5,
         output_format: str = "csv",
@@ -28,8 +29,7 @@ class GetmatchJobScraper:
         self.num_pages = num_pages
         self.output_format = output_format
 
-        logging.basicConfig(level=logging.INFO)
-        self.logger = logging.getLogger(__name__)
+        self.logger = logger
 
     def parse_salary(self, salary_text: str) -> tuple:
         """
@@ -261,11 +261,3 @@ class GetmatchJobScraper:
 
         else:
             self.logger.error("Could not collect job data")
-
-
-# for testing purposes
-if __name__ == "__main__":
-    scraper = GetmatchJobScraper(
-        output_filename_base="data/raw/getmatch/raw", num_pages=1, output_format="csv"
-    )
-    scraper.scrape()

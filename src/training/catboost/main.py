@@ -1,4 +1,6 @@
 # catboost main.py
+import logging
+
 import numpy as np
 from sklearn.model_selection import train_test_split
 
@@ -12,14 +14,12 @@ from src.training.catboost.utils import save_history
 from src.training.utils import setup_mlflow
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
-from src.utils.utils import setup_logging
 
 
-def main():
+def main(logger: logging.Logger):
     # get configuration and logging
     config = load_config()
     mlflow = setup_mlflow(config)
-    logger = setup_logging()
 
     # Get current week info for file naming
     week_info = current_week_info()
@@ -128,7 +128,3 @@ def main():
         save_model(model, config, f"catboost_{week_suffix}")
 
         logger.info("Training complete.")
-
-
-if __name__ == "__main__":
-    main()

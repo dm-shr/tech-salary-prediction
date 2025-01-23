@@ -16,13 +16,13 @@ def load_config() -> Dict[str, Any]:
     return config
 
 
-def setup_logging():
+def setup_logging(name: str = __name__) -> logging.Logger:
     """Set up logging configuration."""
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
-    return logging.getLogger(__name__)
+    return logging.getLogger(name)
 
 
 def current_week_info():
