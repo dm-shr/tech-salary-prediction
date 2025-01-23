@@ -101,6 +101,7 @@ models:
     y_true_base: "data/predictions/catboost/y_true"
 
   transformer:
+    enabled: false
     mlflow_run_name: "transformer"
     model_name: "intfloat/multilingual-e5-small"
     model_name_test: "sergeyzh/rubert-tiny-turbo"

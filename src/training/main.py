@@ -24,6 +24,14 @@ def main():
     logger.info("Training CatBoost model...")
     train_catboost()
 
+    if not config["models"]["transformer"]["enabled"]:
+        logger.info("Transformer is disabled. Saving mock data...")
+        train_transformer(
+            enabled=False
+        )  # this will save mock data as config has transformer disabled
+        logger.info("Training complete.")
+        return
+
     # Train Transformer Model
     logger.info("Training Transformer model...")
     train_transformer()
@@ -86,6 +94,7 @@ def main():
             )
 
     logger.info("Blended model evaluation complete.")
+    logger.info("Training complete.")
 
 
 if __name__ == "__main__":

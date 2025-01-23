@@ -20,12 +20,25 @@ config = load_config()
 mlflow = setup_mlflow(config)
 
 
-def main():
+def main(enabled=True):
     logger = setup_logging()
 
     # Get current week info for file naming
     week_info = current_week_info()
     week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
+
+    # Early return with mock data if transformer is not enabled
+    if not enabled:
+        mock_array = np.array([0])
+        y_pred_base = config["models"]["transformer"]["y_pred_base"]
+        y_true_base = config["models"]["transformer"]["y_true_base"]
+        save_base = config["models"]["transformer"]["save_base"]
+
+        np.save(f"{y_pred_base}_{week_suffix}.npy", mock_array)
+        np.save(f"{y_true_base}_{week_suffix}.npy", mock_array)
+        torch.save({}, f"{save_base}_{week_suffix}.pt")
+
+        return {"final": None}
 
     run_name = f"{config['models']['transformer']['mlflow_run_name']}_{week_suffix}"
     with mlflow.start_run(run_name=run_name) as _:
