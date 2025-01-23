@@ -3,7 +3,6 @@ import re
 from typing import Optional
 from typing import Tuple
 
-import numpy as np
 import pandas as pd
 import torch
 from transformers import AutoTokenizer
@@ -91,13 +90,6 @@ class FeatureBuilder:
             # Load the data from the CSV file
             self.data = pd.read_csv(self.preprocessed_data_path)
             self.logger.info(f"Data loaded successfully with {len(self.data)} rows.")
-
-            # NOTE: REMOVE LATER #
-            self.data["location"] = self.data["location"].replace([None, ""], np.nan)
-            self.data.fillna({"location": "неизвестно"}, inplace=True)
-            self.data["skills"] = self.data["skills"].replace([None, ""], np.nan)
-            self.data.fillna({"skills": "неизвестно"}, inplace=True)
-            # NOTE: REMOVE LATER #
 
         except Exception as e:
             self.logger.error(f"Failed to initialize FeatureBuilder: {str(e)}")
