@@ -23,7 +23,7 @@ preprocessing:
     headhunter: "data/raw/headhunter/raw"
   merged_path: "data/preprocessed/merged/merged"
   output_path: "data/preprocessed/preprocessed"
-  historical_data_path: "data/preprocessed/preprocessed_historical.csv"
+  historical_data_path: "data/preprocessed/preprocessed.csv"
   salary_outliers:
     bottom_percentile: 0.001
     top_percentile: 1.0    # Keep all high values

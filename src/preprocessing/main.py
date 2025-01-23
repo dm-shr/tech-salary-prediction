@@ -39,7 +39,6 @@ class JobDataPreProcessor:
 
         # Construct merged and output paths
         self.merged_path = f"{config['preprocessing']['merged_path']}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
-        self.output_path = f"{config['preprocessing']['output_path']}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
         self.historical_data_path = config["preprocessing"]["historical_data_path"]
         self.bottom_percentile = config["preprocessing"]["salary_outliers"]["bottom_percentile"]
         self.top_percentile = config["preprocessing"]["salary_outliers"]["top_percentile"]
@@ -215,11 +214,10 @@ class JobDataPreProcessor:
             )
             logger.info(f"Length of data after duplicates removal: {len(merged_data)}")
 
-        # Save the processed data
         logger.info(f"Length of data after cleaning: {len(merged_data)}")
-        logger.info(f"Saving processed data to {self.output_path}...")
+        logger.info(f"Saving processed data to {self.historical_data_path}...")
+        merged_data.to_csv(self.historical_data_path, index=False)
 
-        merged_data.to_csv(self.output_path, index=False)
         logger.info("Processing completed.")
 
 
