@@ -27,7 +27,8 @@ def main(logger: logging.Logger):
     if not config["models"]["transformer"]["enabled"]:
         logger.info("Transformer is disabled. Saving mock data...")
         train_transformer(
-            enabled=False
+            logger,
+            enabled=False,
         )  # this will save mock data as config has transformer disabled
         logger.info("Training complete.")
         return
