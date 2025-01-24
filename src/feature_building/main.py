@@ -15,14 +15,15 @@ class FeatureBuilder:
     def __init__(
         self,
         logger: logging.Logger,
+        is_inference: bool = False,
     ):
         """Initialize the FeatureBuilder with configuration and data loading."""
         try:
             self.logger = logger
+            self.is_inference = is_inference
             # Load configuration
             config = load_config()
             self.config = config
-
             self.is_test = config["is_test"]
 
             # Get current week info
@@ -87,13 +88,27 @@ class FeatureBuilder:
             )
             self.tokenizer_transformer = AutoTokenizer.from_pretrained(tokenizer_name)
 
-            # Load the data from the CSV file
-            self.data = pd.read_csv(self.preprocessed_data_path)
-            self.logger.info(f"Data loaded successfully with {len(self.data)} rows.")
+            # Initialize data as None for inference mode
+            self.data = None
+            if not is_inference:
+                self.data = pd.read_csv(self.preprocessed_data_path)
+                self.logger.info(f"Data loaded successfully with {len(self.data)} rows.")
 
         except Exception as e:
             self.logger.error(f"Failed to initialize FeatureBuilder: {str(e)}")
             raise
+
+    @property
+    def data(self):
+        """Get the current data."""
+        return self._data
+
+    @data.setter
+    def data(self, value):
+        """Set the data for processing."""
+        if value is not None and not isinstance(value, pd.DataFrame):
+            raise ValueError("Data must be a pandas DataFrame")
+        self._data = value
 
     def merge_skills_and_descriptions(self) -> None:
         """Merge skills and descriptions to create a new feature."""
@@ -184,66 +199,53 @@ class FeatureBuilder:
             self.logger.error(f"Error extracting numbers from text: {str(e)}")
             return None, None
 
-    def fill_missing_experience(self) -> None:
-        """Fill missing experience values based on description."""
+    def process_experience(self) -> None:
+        """Extracts experience from the description and fills missing values.
+        When not in inference mode, fills missing experience values based on grade medians."""
         try:
-            self.logger.info("Filling missing experience data...")
+            self.logger.info("Processing experience data...")
+            # Fill missing experience from description
             empty_experience_mask = self.data["experience_from"].isna()
-
-            # Apply extract_numbers to descriptions where experience is missing
             extracted_values = self.data.loc[empty_experience_mask, "description"].apply(
                 self.extract_numbers
             )
-
             self.data.loc[empty_experience_mask, "experience_from"] = extracted_values.apply(
                 lambda x: x[0]
             )
             self.data.loc[empty_experience_mask, "experience_to"] = extracted_values.apply(
                 lambda x: x[1]
             )
-
             self.logger.info(f"Filled {empty_experience_mask.sum()} missing experience values.")
-        except Exception as e:
-            self.logger.error(f"Failed to fill missing experience: {str(e)}")
-            raise
 
-    def fill_experience_by_grade(self) -> None:
-        """Fill missing experience values based on median experience per grade."""
-        try:
-            self.logger.info("Filling missing experience based on grade...")
-            empty_experience_mask = self.data["experience_from"].isna()
-            empty_grade_mask = self.data["grade"].isna()
+            # Fill by grade if not in inference mode
+            if not self.is_inference:
+                empty_experience_mask = self.data["experience_from"].isna()
+                empty_grade_mask = self.data["grade"].isna()
 
-            # Calculate median experience by grade
-            grouped_by_grade = (
-                self.data[~empty_experience_mask & ~empty_grade_mask]
-                .groupby("grade")[["experience_from", "experience_to"]]
-                .median()
-            )
-
-            # Fill missing values based on grade medians
-            for grade, (experience_from, experience_to) in grouped_by_grade.iterrows():
-                mask = (self.data["grade"] == grade) & empty_experience_mask
-                self.data.loc[mask, ["experience_from", "experience_to"]] = (
-                    experience_from,
-                    experience_to,
+                # Calculate median experience by grade
+                grouped_by_grade = (
+                    self.data[~empty_experience_mask & ~empty_grade_mask]
+                    .groupby("grade")[["experience_from", "experience_to"]]
+                    .median()
                 )
 
-            self.logger.info("Missing experience based on grade filled successfully.")
-        except Exception as e:
-            self.logger.error(f"Failed to fill experience by grade: {str(e)}")
-            raise
+                # Fill missing values based on grade medians
+                for grade, (experience_from, experience_to) in grouped_by_grade.iterrows():
+                    mask = (self.data["grade"] == grade) & empty_experience_mask
+                    self.data.loc[mask, ["experience_from", "experience_to"]] = (
+                        experience_from,
+                        experience_to,
+                    )
+                self.logger.info("Missing experience based on grade filled successfully.")
 
-    def adjust_experience_upper_bound(self) -> None:
-        """Adjust the upper bound of experience to 10 if not specified."""
-        try:
-            self.logger.info("Adjusting upper bound of experience...")
+            # Adjust upper bound
             self.data["experience_to_adjusted_10"] = self.data["experience_to"].apply(
                 lambda x: 10 if x == -1 else x
             )
-            self.logger.info("Upper bound of experience adjusted successfully.")
+            self.logger.info("Experience processing completed successfully.")
+
         except Exception as e:
-            self.logger.error(f"Failed to adjust experience upper bound: {str(e)}")
+            self.logger.error(f"Failed to process experience data: {str(e)}")
             raise
 
     def add_description_size_feature(self) -> None:
@@ -251,7 +253,10 @@ class FeatureBuilder:
         try:
             self.logger.info("Adding description size (word count)...")
             self.data["description_size"] = (
-                self.data["description_no_numbers_with_skills"].str.split().str.len()
+                self.data["description_no_numbers_with_skills"]
+                .str.split()
+                .str.len()
+                .astype(int)  # Added explicit conversion to int
             )
             self.logger.info("Description size added successfully.")
         except Exception as e:
@@ -301,17 +306,16 @@ class FeatureBuilder:
             self.logger.error(f"Failed to add 'query: ' prefix to text features: {str(e)}")
             raise
 
-    def tokenize_and_save_transformer_features_to_pt(self) -> None:
-        """Tokenize text features for a transformer model and save them separately as Torch files."""
+    def process_and_get_transformer_features(self) -> Optional[dict]:
+        """Process text features for transformer and either save or return them."""
         try:
-            self.logger.info("Tokenizing and saving text features...")
+            self.logger.info("Processing transformer features...")
+            features_dict = {}
+
             for feature_processing_dict in self.transformer_feature_processing:
                 feature = feature_processing_dict["name"]
                 max_len = feature_processing_dict["max_len"]
 
-                feature_path = feature_processing_dict["path"]
-
-                self.logger.info(f"Processing feature: {feature}")
                 tokenized_data = self.tokenizer_transformer(
                     self.data[feature].tolist(),
                     max_length=max_len,
@@ -320,23 +324,58 @@ class FeatureBuilder:
                     return_tensors="pt",
                 )
 
-                torch.save(tokenized_data, feature_path)
+                if self.is_inference:
+                    features_dict[feature] = tokenized_data
+                else:
+                    feature_path = feature_processing_dict["path"]
+                    torch.save(tokenized_data, feature_path)
+                    self.logger.info(f"Saved {feature} to {feature_path}")
 
-                self.logger.info(f"Tokenized data for '{feature}' saved to {feature_path}")
+            return features_dict if self.is_inference else None
+
         except Exception as e:
-            self.logger.error(f"Failed to tokenize and save text features: {str(e)}")
+            self.logger.error(f"Failed to process transformer features: {str(e)}")
             raise
 
-    def process_features(self) -> None:
-        """Process all features in sequence."""
+    def process_and_get_catboost_features(self) -> Optional[pd.DataFrame]:
+        """Process and either save or return CatBoost features."""
+        try:
+            catboost_features = self.data[self.catboost_features]
+
+            if not self.is_inference:
+                catboost_features.to_csv(self.catboost_features_path, index=False)
+                self.logger.info(f"Saved CatBoost features to {self.catboost_features_path}")
+
+            return catboost_features if self.is_inference else None
+
+        except Exception as e:
+            self.logger.error(f"Failed to process CatBoost features: {str(e)}")
+            raise
+
+    def save_target(self) -> None:
+        """When not in inference mode, save the target data."""
+        try:
+            if self.is_inference:
+                return None
+
+            target_values = self.data[[self.target_name]].values
+            torch.save(target_values, self.target_output_path + ".pt")
+            self.data[[self.target_name]].to_csv(self.target_output_path + ".csv", index=False)
+            self.logger.info(f"Target data saved to {self.target_output_path}")
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Failed to process target: {str(e)}")
+            raise
+
+    def _build(self) -> None:
+        """Build all features in sequence."""
         try:
             self.logger.info("Processing all features...")
             self.merge_skills_and_descriptions()
-            self.fill_missing_experience()
-            self.fill_experience_by_grade()
-            self.adjust_experience_upper_bound()
+            self.process_experience()
             self.add_description_size_feature()
-            self.add_title_company_location_skills_source_feature()
+            self.add_title_company_location_skills_source_feature()  # Moved before query prefix addition
             if self.add_query_prefix:
                 self.add_query_prefix_to_text_features()
             if self.is_test:
@@ -348,42 +387,26 @@ class FeatureBuilder:
             self.logger.error(f"Failed to process features: {str(e)}")
             raise
 
-    def save_target(self) -> None:
-        """Save the processed target data to a Torch and CSV files."""
+    def build(self) -> Optional[dict]:
+        """Run the feature building process and return features if in inference mode."""
         try:
-            self.logger.info("Saving target data to PT file...")
-            torch.save(self.data[[self.target_name]].values, self.target_output_path + ".pt")
-            self.logger.info(
-                f"Target data saved successfully to {self.target_output_path + '.pt'}."
-            )
-            self.logger.info("Saving target data to CSV file...")
-            self.data[[self.target_name]].to_csv(self.target_output_path + ".csv", index=False)
-            self.logger.info(
-                f"Target data saved successfully to {self.target_output_path + '.csv'}."
-            )
-        except Exception as e:
-            self.logger.error(f"Failed to save target data: {str(e)}")
-            raise
+            if self.data is None:
+                raise ValueError("No data available for processing")
 
-    def save_catboost_features_to_csv(self) -> None:
-        """Save the processed features data to a CSV file for CatBoost."""
-        try:
-            self.logger.info("Saving features data to CSV file for CatBoost...")
-            self.data[self.catboost_features].to_csv(self.catboost_features_path, index=False)
-            self.logger.info(f"Features data saved successfully to {self.catboost_features_path}.")
-        except Exception as e:
-            self.logger.error(f"Failed to save features data to CSV: {str(e)}")
-            raise
-
-    def run(self) -> None:
-        """Main method to run the entire feature building process."""
-        try:
             self.logger.info("Starting feature building process...")
-            self.process_features()
-            self.tokenize_and_save_transformer_features_to_pt()
-            self.save_catboost_features_to_csv()
-            self.save_target()
-            self.logger.info("Feature building process completed successfully.")
+            self._build()
+
+            results = {
+                "transformer_features": self.process_and_get_transformer_features(),
+                "catboost_features": self.process_and_get_catboost_features(),
+            }
+
+            if not self.is_inference:
+                self.save_target()
+                return None
+
+            return results
+
         except Exception as e:
             self.logger.error(f"Feature building process failed: {str(e)}")
             raise
@@ -391,8 +414,8 @@ class FeatureBuilder:
 
 def main(logger: logging.Logger):
     try:
-        feature_builder = FeatureBuilder(logger)
-        feature_builder.run()
+        feature_builder = FeatureBuilder(logger, is_inference=False)
+        feature_builder.build()
     except Exception as e:
         logger.critical(f"Application failed: {str(e)}")
         raise
