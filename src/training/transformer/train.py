@@ -145,3 +145,30 @@ def fit_eval(
             )
 
     return model, history
+
+
+def predict(model, inputs1, inputs2, device):
+    """
+    Predict target value for a single pair of preprocessed inputs.
+
+    Args:
+        model: Trained transformer model
+        inputs1: First preprocessed input dictionary with 'input_ids' and 'attention_mask'
+        inputs2: Second preprocessed input dictionary with 'input_ids' and 'attention_mask'
+        device: Device to run inference on
+
+    Returns:
+        float: Predicted value
+    """
+    model.eval()
+
+    # Move inputs to device
+    input1 = inputs1["input_ids"].to(device)
+    attention_mask1 = inputs1["attention_mask"].to(device)
+    input2 = inputs2["input_ids"].to(device)
+    attention_mask2 = inputs2["attention_mask"].to(device)
+
+    with torch.no_grad():
+        output = model(input1, attention_mask1, input2, attention_mask2).squeeze()
+
+    return output.item()
