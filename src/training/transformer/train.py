@@ -147,7 +147,7 @@ def fit_eval(
     return model, history
 
 
-def predict(model, inputs1, inputs2, device):
+def predict(model, inputs1, inputs2):
     """
     Predict target value for a single pair of preprocessed inputs.
 
@@ -155,11 +155,11 @@ def predict(model, inputs1, inputs2, device):
         model: Trained transformer model
         inputs1: First preprocessed input dictionary with 'input_ids' and 'attention_mask'
         inputs2: Second preprocessed input dictionary with 'input_ids' and 'attention_mask'
-        device: Device to run inference on
 
     Returns:
         float: Predicted value
     """
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.eval()
 
     # Move inputs to device

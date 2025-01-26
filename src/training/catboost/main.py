@@ -55,8 +55,16 @@ def main(logger: logging.Logger):
             # print data shapes
             logger.info(f"Train shape: {X_train.shape}, Test shape: {X_test.shape}")
 
-            train_pool = create_pool_data(X_train, y_train, config)
-            test_pool = create_pool_data(X_test, y_test, config)
+            train_pool = create_pool_data(
+                config,
+                X_train,
+                y_train,
+            )
+            test_pool = create_pool_data(
+                config,
+                X_test,
+                y_test,
+            )
 
             # get model
             model = CatBoostModel()
@@ -101,7 +109,11 @@ def main(logger: logging.Logger):
         final_model = final_model.model_from_config(config, main_seed)
 
         # Create data pool for the entire dataset
-        full_pool = create_pool_data(X, y, config)
+        full_pool = create_pool_data(
+            config,
+            X,
+            y,
+        )
 
         # Train the final model, calculate train metrics for the full dataset
         final_train_metrics = final_model.train_and_evaluate_with_metrics(

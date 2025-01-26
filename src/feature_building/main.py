@@ -1,5 +1,6 @@
 import logging
 import re
+from typing import Literal
 from typing import Optional
 from typing import Tuple
 
@@ -7,6 +8,7 @@ import pandas as pd
 import torch
 from transformers import AutoTokenizer
 
+from src.preprocessing.main import JobDataPreProcessor
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 
@@ -98,6 +100,32 @@ class FeatureBuilder:
             self.logger.error(f"Failed to initialize FeatureBuilder: {str(e)}")
             raise
 
+    def prepare_set_inference_data(
+        self,
+        title: str,
+        company: str,
+        location: str,
+        description: str,
+        skills: str,
+        experience_from: int,
+        experience_to: int,
+        source: Literal["headhunter", "getmatch"] = "headhunter",
+    ) -> pd.DataFrame:
+        """Prepare input data for inference in the format expected by FeatureBuilder to then build features.
+        Set the data attribute of the FeatureBuilder instance to the input data."""
+        input_dict = {
+            "title": [title],
+            "company": [company],
+            "location": [location],
+            "description": [description],
+            "skills": [skills],
+            "experience_from": [experience_from],
+            "experience_to": [experience_to],
+            "source": [source],
+        }
+
+        self.data = pd.DataFrame(input_dict)
+
     @property
     def data(self):
         """Get the current data."""
@@ -114,6 +142,10 @@ class FeatureBuilder:
         """Merge skills and descriptions to create a new feature."""
         try:
             self.logger.info("Merging skills and descriptions...")
+            if self.is_inference:
+                self.data["description_no_numbers"] = self.data["description"].apply(
+                    JobDataPreProcessor.replace_salary_patterns
+                )
             self.data["description_no_numbers_with_skills"] = (
                 self.data["description_no_numbers"] + " " + self.data["skills"]
             )

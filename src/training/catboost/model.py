@@ -11,7 +11,7 @@ from sklearn.metrics import r2_score
 
 class CatBoostModel:
     def __init__(self):
-        self.model = None
+        self.model: CatBoostRegressor = None
 
     @staticmethod
     def model_from_config(config: Dict[str, Any], seed: int) -> "CatBoostModel":
@@ -111,5 +111,5 @@ class CatBoostModel:
         save_path = os.path.join(save_dir, f"{model_name}.cbm")
         self.model.save_model(save_path)
 
-    def predict(self, X):
-        return self.model.predict(X)
+    def predict(self, pool):
+        return self.model.predict(data=pool)

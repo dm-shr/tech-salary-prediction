@@ -22,15 +22,15 @@ preprocessing:
     getmatch: "data/raw/getmatch/raw"
     headhunter: "data/raw/headhunter/raw"
   merged_path: "data/preprocessed/merged/merged"
-  output_path: "data/preprocessed/preprocessed"
-  historical_data_path: "data/preprocessed/preprocessed.csv"
+  output_path: "data/preprocessed/preprocessed/preprocessed.csv"
+  historical_data_path: "data/preprocessed/historical/preprocessed.csv"
   salary_outliers:
     bottom_percentile: 0.001
     top_percentile: 1.0    # Keep all high values
 
 # Feature Engineering
 features:
-  preprocessed_data_base: "data/preprocessed/preprocessed"
+  preprocessed_data_base: "data/preprocessed/preprocessed/preprocessed"
   output_base: "data/processed/processed"
   target_base: "data/processed/target/target"
   target_name: "log_salary_from"

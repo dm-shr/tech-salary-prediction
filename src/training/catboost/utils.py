@@ -32,14 +32,18 @@ def save_history(history: Dict[int, Dict[str, Any]], save_dir: str, model_name: 
         pickle.dump(history, f)
 
 
-def create_pool_data(X, y, config):
+def create_pool_data(
+    config: Dict[str, Any],
+    X: pd.DataFrame,
+    y: pd.Series = None,
+):
     """
     Create CatBoost Pool object from data.
 
     Args:
+        config: Configuration dictionary containing feature definitions
         X: Features DataFrame
         y: Target values
-        config: Configuration dictionary containing feature definitions
 
     Returns:
         CatBoost Pool object
@@ -47,8 +51,8 @@ def create_pool_data(X, y, config):
     text_features = config["features"]["features"]["catboost"]["text"]
     cat_features = config["features"]["features"]["catboost"]["categorical"]
     return Pool(
-        X,
-        y,
+        data=X,
+        label=y,
         text_features=text_features,
         cat_features=cat_features,
     )
