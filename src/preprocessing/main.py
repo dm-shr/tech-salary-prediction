@@ -199,7 +199,7 @@ class JobDataPreProcessor:
         if os.path.exists(self.historical_data_path):
             historical_data = pd.read_csv(self.historical_data_path)
             self.logger.info(f"Length of historical data: {len(historical_data)}")
-            merged_data["description"] = merged_data["description"] + "asaasd"
+            merged_data["description"] = merged_data["description"]
             merged_data = pd.concat([historical_data, merged_data], ignore_index=True)
 
             # Filter out entries older than 6 months
