@@ -14,13 +14,13 @@ def scraper():
 
 @pytest.fixture
 def sample_job_card_html():
-    with open("tests/scraping/fixtures/job_card.html", encoding="utf-8") as f:
+    with open("tests/scraping/fixtures/getmatch_job_card.html", encoding="utf-8") as f:
         return f.read()
 
 
 @pytest.fixture
 def sample_job_page_html():
-    with open("tests/scraping/fixtures/job_page.html", encoding="utf-8") as f:
+    with open("tests/scraping/fixtures/getmatch_job_page.html", encoding="utf-8") as f:
         return f.read()
 
 
