@@ -1,0 +1,11 @@
+{
+    "id": "1234567",
+    "name": "Python Developer",
+    "description": "<p>Test description</p>",
+    "key_skills": [{"name": "Python"}, {"name": "SQL"}],
+    "experience": {"id": "between3And6"},
+    "area": {"id": "1", "name": "Moscow"},
+    "salary": {"from": 100000, "to": 200000, "currency": "RUR"},
+    "employer": {"name": "Test Company"},
+    "alternate_url": "https://hh.ru/vacancy/1234567"
+}
