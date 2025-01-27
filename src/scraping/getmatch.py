@@ -164,8 +164,11 @@ class GetmatchJobScraper:
 
             return job_data
 
-        except Exception as e:
+        except requests.RequestException as e:
             self.logger.error(f"Error when fetching {job_url}: {e}")
+            return {"url": job_url, "error": str(e)}
+        except Exception as e:
+            self.logger.error(f"Unexpected error when fetching {job_url}: {e}")
             return {"url": job_url, "error": str(e)}
 
     def get_job_urls(self, page: int = 1) -> Tuple[List[str], List[str]]:
