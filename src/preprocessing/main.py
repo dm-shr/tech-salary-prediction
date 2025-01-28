@@ -9,8 +9,10 @@ from typing import Optional
 import numpy as np
 import pandas as pd
 
+from src.monitoring.distribution_drift import DistributionDriftChecker
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
+from src.utils.utils import setup_logging
 
 
 class JobDataPreProcessor:
@@ -43,6 +45,18 @@ class JobDataPreProcessor:
         self.output_path = config["preprocessing"]["output_path"]
         self.bottom_percentile = config["preprocessing"]["salary_outliers"]["bottom_percentile"]
         self.top_percentile = config["preprocessing"]["salary_outliers"]["top_percentile"]
+
+        # Initialize target drift checker
+        self.drift_checker = DistributionDriftChecker()
+        self.drift_thresholds = {
+            "ks_pvalue_threshold": config["preprocessing"]["drift_thresholds"][
+                "ks_pvalue_threshold"
+            ],
+            "js_divergence_threshold": config["preprocessing"]["drift_thresholds"][
+                "js_divergence_threshold"
+            ],
+            "psi_threshold": config["preprocessing"]["drift_thresholds"]["psi_threshold"],
+        }
 
     @staticmethod
     def get_currency(salary_text: str) -> Optional[str]:
@@ -228,6 +242,13 @@ class JobDataPreProcessor:
         self.logger.info("Loading and merging with historical data...")
         if os.path.exists(self.historical_data_path):
             historical_data = pd.read_csv(self.historical_data_path)
+            self.logger.info("Checking for target drift with historical data...")
+            is_drift, metrics = self.drift_checker.check_drift(
+                historical_data, merged_data, self.drift_thresholds
+            )
+
+            if is_drift:
+                self.logger.warning("Target drift detected! Metrics: %s", metrics)
             self.logger.info(f"Length of historical data: {len(historical_data)}")
             merged_data["description"] = merged_data["description"]
             merged_data = pd.concat([historical_data, merged_data], ignore_index=True)
@@ -256,3 +277,8 @@ class JobDataPreProcessor:
 def main(logger: logging.Logger):
     processor = JobDataPreProcessor(logger)
     processor.process()
+
+
+if __name__ == "__main__":
+    logger = setup_logging()
+    main(logger)
