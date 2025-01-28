@@ -84,6 +84,25 @@ class JobDataPreProcessor:
         text = pattern_v2.sub(lambda m: f"{m.group(2)} [NUMBER]", text)
         return text.replace("₽", " рублей")
 
+    @staticmethod
+    def remove_description_duplicates(df: pd.DataFrame) -> pd.DataFrame:
+        """Remove duplicate job descriptions using MD5 hashing.
+
+        Args:
+            df: DataFrame containing 'description' column
+
+        Returns:
+            DataFrame with duplicate descriptions removed
+        """
+        # Step 1: Add hashes
+        df["description_hash"] = df["description"].apply(
+            lambda x: hashlib.md5(x.replace(" ", "").encode()).hexdigest()
+        )
+        # Step 2: Remove duplicates and cleanup
+        df = df.drop_duplicates(subset="description_hash", keep=False)
+        df = df.drop(columns=["description_hash"])
+        return df
+
     def process(self):
         self.logger.info("Loading datasets...")
         getmatch = pd.read_csv(self.getmatch_path)
@@ -156,11 +175,7 @@ class JobDataPreProcessor:
 
         # Remove duplicates
         self.logger.info("Removing duplicate descriptions...")
-        merged_data["description_hash"] = merged_data["description"].apply(
-            lambda x: hashlib.md5(x.encode()).hexdigest()
-        )
-        merged_data = merged_data.drop_duplicates(subset="description_hash", keep=False)
-        merged_data.drop(columns=["description_hash"], inplace=True)
+        merged_data = self.remove_description_duplicates(merged_data)
 
         # Drop rows with empty salary_from
         self.logger.info("Dropping rows with empty salary_from...")
