@@ -103,6 +103,25 @@ class JobDataPreProcessor:
         df = df.drop(columns=["description_hash"])
         return df
 
+    @staticmethod
+    def remove_salary_outliers(
+        df: pd.DataFrame, bottom_percentile: float, top_percentile: float
+    ) -> pd.DataFrame:
+        """Remove salary outliers based on percentile thresholds.
+
+        Args:
+            df: DataFrame containing 'salary_from' column
+            bottom_percentile: Lower percentile threshold
+            top_percentile: Upper percentile threshold
+
+        Returns:
+            DataFrame with salary outliers removed
+        """
+        bottom_threshold = df["salary_from"].quantile(bottom_percentile)
+        top_threshold = df["salary_from"].quantile(top_percentile)
+
+        return df[(df["salary_from"] >= bottom_threshold) & (df["salary_from"] <= top_threshold)]
+
     def process(self):
         self.logger.info("Loading datasets...")
         getmatch = pd.read_csv(self.getmatch_path)
@@ -188,13 +207,9 @@ class JobDataPreProcessor:
 
         # Remove salary outliers
         self.logger.info("Removing salary outliers...")
-        bottom_threshold = merged_data["salary_from"].quantile(self.bottom_percentile)
-        top_threshold = merged_data["salary_from"].quantile(self.top_percentile)
-
-        merged_data = merged_data[
-            (merged_data["salary_from"] >= bottom_threshold)
-            & (merged_data["salary_from"] <= top_threshold)
-        ]
+        merged_data = self.remove_salary_outliers(
+            merged_data, self.bottom_percentile, self.top_percentile
+        )
 
         # Log-transform salaries
         self.logger.info("Log-transforming salaries...")
