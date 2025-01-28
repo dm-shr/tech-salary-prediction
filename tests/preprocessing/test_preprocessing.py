@@ -19,8 +19,13 @@ def mock_config():
             "historical_data_path": "test_historical.csv",
             "output_path": "test_output.csv",
             "salary_outliers": {
-                "bottom_percentile": 0.001,  # from params.yaml
-                "top_percentile": 1.0,  # from params.yaml
+                "bottom_percentile": 0.001,
+                "top_percentile": 1.0,
+            },
+            "drift_thresholds": {
+                "ks_pvalue_threshold": 0.05,
+                "js_divergence_threshold": 0.1,
+                "psi_threshold": 0.2,
             },
         },
     }
@@ -30,7 +35,10 @@ def mock_config():
 def mock_getmatch_data():
     return pd.DataFrame(
         {
-            "description_text": ["Python developer remote", "Senior Java developer"],
+            "description_text": [
+                "Нужен Python-разработчик, онлайн",
+                "Нужен Senior Java разработчик в офис",
+            ],
             "company_name": ["CompanyA", "CompanyB"],
             "title": ["Python Dev", "Java Dev"],
             "location": ["Moscow", "Saint Petersburg"],
@@ -49,7 +57,10 @@ def mock_getmatch_data():
 def mock_headhunter_data():
     return pd.DataFrame(
         {
-            "description": ["Python developer Moscow", "Remote Java position"],
+            "description": [
+                "Нужен Python-разработчик, офис в г. Москва",
+                "Нужен Java разработчик на удаленку",
+            ],
             "company": ["CompanyC", "CompanyD"],
             "title": ["Python Dev", "Java Dev"],
             "area": ["Moscow", None],
@@ -142,6 +153,7 @@ def test_process(
                 "salary_from": [100000],
                 "salary_to": [200000],
                 "currency": ["RUR"],
+                "log_salary_from": [11.51],
             }
         )
         mock_read_csv.side_effect = [mock_getmatch_data, mock_headhunter_data, historical_data]

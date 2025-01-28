@@ -24,6 +24,10 @@ preprocessing:
   merged_path: "data/preprocessed/merged/merged"
   output_path: "data/preprocessed/preprocessed/preprocessed.csv"
   historical_data_path: "data/preprocessed/historical/preprocessed.csv"
+  drift_thresholds:
+    ks_pvalue_threshold: 0.05
+    js_divergence_threshold: 0.1
+    psi_threshold: 0.2
   salary_outliers:
     bottom_percentile: 0.001
     top_percentile: 1.0    # Keep all high values
