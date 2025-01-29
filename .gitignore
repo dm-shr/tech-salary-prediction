@@ -204,12 +204,17 @@ data/processed/*
 !data/processed/*/.gitkeep
 data/predictions/*
 !data/predictions/.gitkeep
-!data/predictions/*/.gitkeep
 
 # DVC
 .dvc/
 *.dvc
 !.dvc/config
+
+# DVC - track config but ignore cache
+.dvc/cache
+!.dvc
+!.dvcignore
+!*.dvc
 
 # Airflow
 logs/
