@@ -1,0 +1,30 @@
+# Add patterns of files dvc should ignore, which could improve
+# the performance. Learn more at
+# https://dvc.org/doc/user-guide/dvcignore
+
+# Ignore virtual environments
+venv/
+env/
+.venv/
+.env
+
+# Ignore temporary files
+*.tmp
+*.log
+*.bak
+__pycache__/
+*.pyc
+
+# Ignore IDE files
+.idea/
+.vscode/
+.DS_Store
+
+# Ignore large raw data not needed for tracking
+data/raw/
+
+# Ignore git files
+.git/
+
+# Ignore pytest cache
+.pytest_cache/

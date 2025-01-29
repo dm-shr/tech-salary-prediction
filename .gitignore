@@ -169,6 +169,8 @@ cython_debug/
 
 # data
 /data/
+!/data/**/*.dvc
+!/data/**/.gitkeep
 /models/
 **/history/
 **/checkpoints/
@@ -185,3 +187,32 @@ cython_debug/
 # mlflow
 mlruns/
 mlartifacts/
+
+# Explicitly include DVC files
+!*.dvc
+!.dvcignore
+
+# Data directories
+data/raw/*
+!data/raw/.gitkeep
+!data/raw/*/.gitkeep
+data/preprocessed/*
+!data/preprocessed/.gitkeep
+!data/preprocessed/*/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+!data/processed/*/.gitkeep
+data/predictions/*
+!data/predictions/.gitkeep
+!data/predictions/*/.gitkeep
+
+# DVC
+.dvc/
+*.dvc
+!.dvc/config
+
+# Airflow
+logs/
+airflow.db
+airflow.cfg
+webserver_config.py
