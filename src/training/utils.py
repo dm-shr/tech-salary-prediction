@@ -1,5 +1,4 @@
 import gc
-import subprocess
 
 import mlflow
 import numpy as np
@@ -7,7 +6,7 @@ import torch
 
 from src.training.catboost.model import CatBoostModel
 from src.training.transformer.model import SingleBERTWithMLP
-from src.utils.utils import current_week_info
+from src.utils.s3_model_loader import S3ModelLoader
 from src.utils.utils import load_config
 
 
@@ -34,34 +33,22 @@ def setup_mlflow(config):
 
 
 def load_models():
-    """Load latest models from S3 using DVC"""
+    """Load latest models from S3"""
     config = load_config()
+    s3_loader = S3ModelLoader()
 
-    # Get current week and year
-    week_info = current_week_info()
-    week = week_info["week_number"]
-    year = week_info["year"]
-    transformer_enabled = config["models"]["transformer"]["enabled"]
+    # Download latest models from S3
+    model_paths = s3_loader.download_latest_models()
     models = {}
 
-    # Construct model paths and pull from DVC
-    model_configs = {
-        "catboost": {
-            "path": f"models/catboost/catboost_week_{week}_year_{year}.cbm",
-            "loader": CatBoostModel.model_from_file,
-            "enabled": True,
-        },
-        "transformer": {
-            "path": f"models/transformer/transformer_week_{week}_year_{year}.pt",
-            "loader": lambda path: SingleBERTWithMLP(config).load_state_dict(torch.load(path)),
-            "enabled": transformer_enabled,
-        },
-    }
+    # Load CatBoost model if available
+    if model_paths.get("catboost"):
+        models["catboost"] = CatBoostModel.model_from_file(model_paths["catboost"])
 
-    # Load enabled models
-    for model_name, config in model_configs.items():
-        if config["enabled"]:
-            subprocess.run(["dvc", "pull", config["path"]], check=True)
-            models[model_name] = config["loader"](config["path"])
+    # Load Transformer model if enabled and available
+    if config["models"]["transformer"]["enabled"] and model_paths.get("transformer"):
+        transformer = SingleBERTWithMLP(config)
+        transformer.load_state_dict(torch.load(model_paths["transformer"]))
+        models["transformer"] = transformer
 
     return models

@@ -1,18 +1,24 @@
 import logging
 
 import numpy as np
+from dotenv import load_dotenv
 
 from src.training.blend import blend_and_evaluate
 from src.training.catboost.main import main as train_catboost
 from src.training.transformer.main import main as train_transformer
 from src.training.utils import setup_mlflow
-from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
+from src.utils.s3_model_loader import S3ModelLoader
+from src.utils.utils import current_week_info
 from src.utils.utils import load_config
+from src.utils.utils import setup_logging
+
+load_dotenv(override=True)
 
 
 def main(logger: logging.Logger):
     config = load_config()
     mlflow = setup_mlflow(config)
+    s3_loader = S3ModelLoader()
 
     # Get current week info for file naming
     week_info = current_week_info()
@@ -20,22 +26,27 @@ def main(logger: logging.Logger):
 
     logger.info("Starting blended model training...")
 
-    # Train CatBoost Model
+    # Train and upload CatBoost Model
     logger.info("Training CatBoost model...")
     train_catboost(logger)
 
+    catboost_local_path = f"{config['models']['catboost']['save_dir']}/catboost_{week_suffix}.cbm"
+    s3_loader.upload_model("catboost", week_info, catboost_local_path)
+
     if not config["models"]["transformer"]["enabled"]:
         logger.info("Transformer is disabled. Saving mock data...")
-        train_transformer(
-            logger,
-            enabled=False,
-        )  # this will save mock data as config has transformer disabled
+        train_transformer(logger, enabled=False)
         logger.info("Training complete.")
         return
 
-    # Train Transformer Model
+    # Train and upload Transformer Model
     logger.info("Training Transformer model...")
     train_transformer(logger)
+
+    transformer_local_path = (
+        f"{config['models']['transformer']['save_base']}/transformer_{week_suffix}.pt"
+    )
+    s3_loader.upload_model("transformer", week_info, transformer_local_path)
 
     # Load predictions and true values with week suffix
     catboost_predictions = np.load(
@@ -96,3 +107,8 @@ def main(logger: logging.Logger):
 
     logger.info("Blended model evaluation complete.")
     logger.info("Training complete.")
+
+
+if __name__ == "__main__":
+    logger = setup_logging()
+    main(logger)

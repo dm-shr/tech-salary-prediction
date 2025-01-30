@@ -6,6 +6,7 @@ from typing import Dict
 from src.scraping.getmatch import GetmatchJobScraper
 from src.scraping.headhunter import HeadhunterJobScraper
 from src.utils.utils import load_config
+from src.utils.utils import setup_logging
 
 
 def create_directories(config: Dict[str, Any]):
@@ -73,3 +74,8 @@ def main(logger: logging.Logger):
     except Exception as e:
         logger.error(f"Fatal error in scraping process: {str(e)}")
         raise
+
+
+if __name__ == "__main__":
+    logger = setup_logging()
+    main(logger)

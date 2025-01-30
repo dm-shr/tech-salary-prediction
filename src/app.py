@@ -25,7 +25,12 @@ transformer_weight = config["models"]["blended"]["transformer_weight"]
 # Load models once using cache
 @st.cache_resource
 def get_models():
-    return load_models()
+    try:
+        return load_models()
+    except Exception as e:
+        logger.error(f"Error loading models: {str(e)}")
+        st.error("Failed to load models. Please try again later.")
+        return {}
 
 
 models = get_models()
