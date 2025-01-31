@@ -1,6 +1,5 @@
 import hashlib
 import logging
-import os
 import re
 from datetime import datetime
 from datetime import timedelta
@@ -10,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from src.monitoring.distribution_drift import DistributionDriftChecker
+from src.utils.s3_data_loader import S3DataLoader
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
@@ -28,6 +28,7 @@ class JobDataPreProcessor:
         week_info = current_week_info()
 
         self.is_test = config["is_test"]
+        self.s3_loader = S3DataLoader()
 
         # Construct input paths with week and year
         base_getmatch = config["preprocessing"]["input_filename_base"]["getmatch"]
@@ -238,10 +239,13 @@ class JobDataPreProcessor:
 
         self.logger.info(f"Length of current data after cleaning: {len(merged_data)}")
 
-        # Merge with historical data and filter
-        self.logger.info("Loading and merging with historical data...")
-        if os.path.exists(self.historical_data_path):
-            historical_data = pd.read_csv(self.historical_data_path)
+        # Try to load historical data from S3 first
+        self.logger.info("Loading historical data from S3...")
+        historical_path = self.s3_loader.download_data("historical")
+
+        if historical_path:
+            historical_data = pd.read_csv(historical_path)
+            self.logger.info("Successfully loaded historical data from S3.")
             self.logger.info("Checking for target drift with historical data...")
             is_drift, metrics = self.drift_checker.check_drift(
                 historical_data, merged_data, self.drift_thresholds
@@ -253,12 +257,6 @@ class JobDataPreProcessor:
             merged_data["description"] = merged_data["description"]
             merged_data = pd.concat([historical_data, merged_data], ignore_index=True)
 
-            # Filter out entries older than 6 months
-            merged_data["published_date"] = pd.to_datetime(merged_data["published_date"])
-            cutoff_date = datetime.now() - timedelta(days=180)
-            merged_data = merged_data[merged_data["published_date"] >= cutoff_date]
-            self.logger.info(f"Length of data after filtering old entries: {len(merged_data)}")
-
             # Sort by date and remove duplicates, keeping latest entries
             merged_data = merged_data.sort_values("published_date", ascending=False)
             merged_data.drop_duplicates(
@@ -266,10 +264,16 @@ class JobDataPreProcessor:
             )
             self.logger.info(f"Length of data after duplicates removal: {len(merged_data)}")
 
+            # Filter out entries older than 6 months
+            merged_data["published_date"] = pd.to_datetime(merged_data["published_date"])
+            cutoff_date = datetime.now() - timedelta(days=180)
+            merged_data = merged_data[merged_data["published_date"] >= cutoff_date]
+            self.logger.info(f"Length of data after filtering old entries: {len(merged_data)}")
+
         self.logger.info(f"Length of data after cleaning: {len(merged_data)}")
         self.logger.info("Saving processed data...")
-        merged_data.to_csv(self.historical_data_path, index=False)
         merged_data.to_csv(self.output_path, index=False)
+        self.s3_loader.upload_data("historical", self.historical_data_path)
 
         self.logger.info("Processing completed.")
 
