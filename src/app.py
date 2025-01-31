@@ -11,7 +11,7 @@ from training.catboost.model import CatBoostModel
 from training.catboost.utils import create_pool_data
 from src.training.transformer.model import SingleBERTWithMLP
 from src.training.transformer.train import predict as transformer_predict
-from src.training.utils import load_models
+from src.training.loader import load_models
 from utils.utils import load_config, setup_logging
 from src.feature_building.main import FeatureBuilder
 

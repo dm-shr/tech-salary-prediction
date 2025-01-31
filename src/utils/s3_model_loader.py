@@ -99,7 +99,7 @@ class S3ModelLoader:
         week_info = current_week_info()
         results = {}
 
-        for model_type in self.MODEL_TYPES:
+        for model_type, _ in self.MODEL_TYPES.items():
             if not self.MODEL_TYPES[model_type]["enabled"]:
                 logger.info(f"Skipping disabled model type: {model_type}")
                 continue
@@ -117,6 +117,7 @@ class S3ModelLoader:
 
                 # Download the file
                 logger.info(f"Downloading {model_type} model for week {week_info['week_number']}")
+                logger.info(f"Model path: {s3_path}")
                 self.s3.download_file(self.bucket_name, s3_path, str(local_path))
                 logger.info(f"Successfully downloaded {model_type} model")
                 results[model_type] = str(local_path)
@@ -159,7 +160,7 @@ class S3ModelLoader:
         """Remove all models except the current versions"""
         week_info = current_week_info()
 
-        for model_type in self.MODEL_TYPES:
+        for model_type, _ in self.MODEL_TYPES.items():
             if not self.MODEL_TYPES[model_type]["enabled"]:
                 continue
 
