@@ -1,3 +1,38 @@
+# Data and models - ignore everything first
+data/*
+data/**/*
+
+models/*
+models/**/*
+
+# Then explicitly track .gitkeep files and .dvc files
+!data/
+!data/**/
+!data/**/.gitkeep
+!data/**/*.dvc
+
+!models/
+!models/**/
+!models/**/.gitkeep
+
+# DVC
+.dvc/cache/
+!.dvc/
+!.dvc/config
+
+**/history/
+**/checkpoints/
+**/catboost_info/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,14 +162,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -167,19 +194,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# data
-/data/
-!/data/**/*.dvc
-!/data/**/.gitkeep
-/models/
-**/history/
-**/checkpoints/
-**/catboost_info/
-*.npy
-*.csv
-*.pkl
-*.pth
-*.pt
 
 # Mac OS
 .DS_Store
@@ -188,33 +202,7 @@ cython_debug/
 mlruns/
 mlartifacts/
 
-# Explicitly include DVC files
-!*.dvc
-!.dvcignore
 
-# Data directories
-data/raw/*
-!data/raw/.gitkeep
-!data/raw/*/.gitkeep
-data/preprocessed/*
-!data/preprocessed/.gitkeep
-!data/preprocessed/*/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-!data/processed/*/.gitkeep
-data/predictions/*
-!data/predictions/.gitkeep
-
-# DVC
-.dvc/
-*.dvc
-!.dvc/config
-
-# DVC - track config but ignore cache
-.dvc/cache
-!.dvc
-!.dvcignore
-!*.dvc
 
 # Airflow
 logs/

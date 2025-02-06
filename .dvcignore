@@ -2,29 +2,22 @@
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
 
-# Ignore virtual environments
-venv/
-env/
-.venv/
-.env
+# First ignore everything
+*
+
+# Then exclude specific directories and files we want to track
+!data/preprocessed/merged/*.csv
 
 # Ignore temporary files
+.dvc/tmp
 *.tmp
-*.log
-*.bak
-__pycache__/
-*.pyc
-
-# Ignore IDE files
-.idea/
-.vscode/
-.DS_Store
-
-# Ignore large raw data not needed for tracking
-data/raw/
 
 # Ignore git files
 .git/
+.gitignore
 
-# Ignore pytest cache
-.pytest_cache/
+# Ignore Python compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
