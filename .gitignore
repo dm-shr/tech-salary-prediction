@@ -17,12 +17,14 @@ models/**/*
 
 # DVC
 .dvc/cache/
+.dvc/tmp/
 !.dvc/
 !.dvc/config
 
 **/history/
 **/checkpoints/
 **/catboost_info/
+misc/
 
 # Environments
 .env
