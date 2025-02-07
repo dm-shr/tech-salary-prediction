@@ -1,7 +1,11 @@
-# DVC
+# DVC - only these entries, remove duplicates
+/data/preprocessed/merged/*.csv
 .dvc/cache
 .dvc/tmp
-/data/preprocessed/merged/*.csv
+!.dvc/.gitignore
+!.dvc/config
+!.dvc/plots
+!.dvc/schemas
 
 # Data and models - ignore everything first
 data/*
@@ -19,12 +23,6 @@ models/**/*
 !models/
 !models/**/
 !models/**/.gitkeep
-
-# DVC
-.dvc/cache/
-.dvc/tmp/
-!.dvc/
-!.dvc/config
 
 **/history/
 **/checkpoints/

@@ -1,5 +1,6 @@
-# Ignore everything except our data files
+# Only track specific data files
 *
+!data/preprocessed/merged/
 !data/preprocessed/merged/*.csv
 
 # Always ignore these
