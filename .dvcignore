@@ -1,5 +1,9 @@
-# Only track specific data files
+# First ignore everything
 *
+
+# Then explicitly include paths to our data
+!data/
+!data/preprocessed/
 !data/preprocessed/merged/
 !data/preprocessed/merged/*.csv
 
