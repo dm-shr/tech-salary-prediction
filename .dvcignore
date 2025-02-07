@@ -1,23 +1,9 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
-
-# First ignore everything
+# Ignore everything except our data files
 *
-
-# Then exclude specific directories and files we want to track
 !data/preprocessed/merged/*.csv
 
-# Ignore temporary files
-.dvc/tmp
-*.tmp
-
-# Ignore git files
+# Always ignore these
 .git/
-.gitignore
-
-# Ignore Python compiled files
+.dvc/
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]

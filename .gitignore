@@ -1,3 +1,8 @@
+# DVC
+.dvc/cache
+.dvc/tmp
+/data/preprocessed/merged/*.csv
+
 # Data and models - ignore everything first
 data/*
 data/**/*
