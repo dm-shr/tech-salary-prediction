@@ -129,38 +129,107 @@ with DAG(
         },
     )
 
-    dvc_add_mock = BashOperator(
-        task_id="dvc_add_mock",
+    # dvc_add_mock = BashOperator(
+    #     task_id="dvc_add_mock",
+    #     bash_command="""
+    #         set -e
+    #         export HOME=/home/airflow
+    #         export PATH="/home/airflow/.local/bin:$PATH"
+
+    #         cd ${REPO_PATH}
+
+    #         echo "Data folder contents:"
+    #         ls -l data/preprocessed/merged/
+
+    #         # Configure git user and disable hooks
+    #         git config user.email "${GIT_EMAIL}" || true
+    #         git config user.name "${GIT_NAME}" || true
+    #         git config --global core.hooksPath /dev/null
+
+    #         # Create mock CSV with provided filename
+    #         mkdir -p data/preprocessed/merged/
+    #         CSV_FILE="data/preprocessed/merged/${MOCK_FILENAME}"
+    #         echo "Creating file: ${CSV_FILE}"
+    #         echo "id,salary\\n1,100000\\n2,120000" > "${CSV_FILE}"
+
+    #         echo "Created file: ${CSV_FILE}"
+    #         echo "Data folder contents:"
+    #         ls -l data/preprocessed/merged/
+
+    #         echo "Adding file to DVC..."
+    #         python -m dvc add "${CSV_FILE}" -v
+
+    #         echo "Data folder contents after DVC add:"
+    #         ls -l data/preprocessed/merged/
+
+    #         echo "DVC status after add:"
+    #         python -m dvc status
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "REPO_PATH": REPO_PATH,
+    #         "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+    #         "GIT_NAME": os.getenv("GIT_NAME"),
+    #         "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+    #         "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "AWS_ALLOW_HTTP": "true",
+    #         "DVC_CACHE_UMASK": "002",
+    #         "PATH": f"/home/airflow/.local/bin:{os.environ.get('PATH', '')}",
+    #         "MOCK_FILENAME": MOCK_FILENAME,
+    #     },
+    # )
+
+    ###
+    # Run scraping with DVC
+    scrape_data = BashOperator(
+        task_id="scrape_data",
+        bash_command="""
+            python -m src.scraping.main
+        """,
+        cwd=REPO_PATH,
+        env={
+            "WEEK": '{{ execution_date.strftime("%V") }}',
+            "YEAR": '{{ execution_date.strftime("%Y") }}',
+        },
+    )
+
+    # Preprocess with DVC tracking
+    preprocess_data = BashOperator(
+        task_id="preprocess_data",
+        bash_command="""
+            # Run preprocessing and capture output path
+            OUTPUT=$(python -m src.preprocessing.main)
+            CSV_PATH=$(echo "$OUTPUT" | grep "MERGED_CSV_PATH=" | cut -d'=' -f2)
+
+            # Save path for next task
+            echo "CSV_PATH=${CSV_PATH}" > /tmp/merged_csv_path
+
+            echo "Generated CSV file: ${CSV_PATH}"
+        """,
+        cwd=REPO_PATH,
+    )
+
+    dvc_add_merged = BashOperator(
+        task_id="dvc_add_merged",
         bash_command="""
             set -e
             export HOME=/home/airflow
             export PATH="/home/airflow/.local/bin:$PATH"
-
             cd ${REPO_PATH}
 
-            echo "Data folder contents:"
-            ls -l data/preprocessed/merged/
+            # Get CSV path from previous task
+            source /tmp/merged_csv_path
+            echo "Working with file: ${CSV_PATH}"
 
-            # Configure git user and disable hooks
+            # Configure git
             git config user.email "${GIT_EMAIL}" || true
             git config user.name "${GIT_NAME}" || true
             git config --global core.hooksPath /dev/null
 
-            # Create mock CSV with provided filename
-            mkdir -p data/preprocessed/merged/
-            CSV_FILE="data/preprocessed/merged/${MOCK_FILENAME}"
-            echo "Creating file: ${CSV_FILE}"
-            echo "id,salary\\n1,100000\\n2,120000" > "${CSV_FILE}"
-
-            echo "Created file: ${CSV_FILE}"
-            echo "Data folder contents:"
-            ls -l data/preprocessed/merged/
-
             echo "Adding file to DVC..."
-            python -m dvc add "${CSV_FILE}" -v
-
-            echo "Data folder contents after DVC add:"
-            ls -l data/preprocessed/merged/
+            python -m dvc add "${CSV_PATH}" -v
 
             echo "DVC status after add:"
             python -m dvc status
@@ -180,28 +249,6 @@ with DAG(
             "MOCK_FILENAME": MOCK_FILENAME,
         },
     )
-
-    # ###
-    #     # Run scraping with DVC
-    #     scrape_data = BashOperator(
-    #         task_id='scrape_data',
-    #         bash_command='''
-    #             python -m src.scraping.main
-    #         ''',
-    #         cwd=REPO_PATH,
-    #         env={
-    #             'WEEK': '{{ execution_date.strftime("%V") }}',
-    #             'YEAR': '{{ execution_date.strftime("%Y") }}'
-    #         }
-    #     )
-
-    #     # Preprocess with DVC tracking
-    #     preprocess_data = BashOperator(
-    #         task_id='preprocess_data',
-    #         bash_command='python -m src.preprocessing.main',
-    #         cwd=REPO_PATH
-    #     )
-
     #     dvc_add_preprocessed = BashOperator(
     #         task_id='dvc_add_preprocessed',
     #         bash_command='''
@@ -267,8 +314,9 @@ with DAG(
             export PATH="/home/airflow/.local/bin:$PATH"
             cd ${REPO_PATH}
 
-            CSV_FILE="data/preprocessed/merged/${MOCK_FILENAME}"
-            echo "Processing file: ${CSV_FILE}"
+            # Get CSV path from previous task
+            source /tmp/merged_csv_path
+            echo "Processing file: ${CSV_PATH}"
 
             # Configure git
             git config user.email "${GIT_EMAIL}" || true
@@ -279,28 +327,22 @@ with DAG(
             python -m dvc push -v
 
             # Git operations
-            if [ -f "${CSV_FILE}.dvc" ]; then
-                # Create clean worktree for the tag
-                TAG_NAME=$(basename ${CSV_FILE} .csv)
+            if [ -f "${CSV_PATH}.dvc" ]; then
+                TAG_NAME=$(basename ${CSV_PATH} .csv)
 
-                # Add only the new DVC file
-                git add -f "${CSV_FILE}.dvc"
+                git add -f "${CSV_PATH}.dvc"
 
                 if ! git diff --staged --quiet; then
-                    # Create commit with just this file
+                    # Create commit and tag
                     git commit -m "Add ${TAG_NAME}"
-
-                    # Create and push tag
                     git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
                     git push origin "${TAG_NAME}"
-
-                    # Update branch with all commits
                     git push origin ${GIT_BRANCH}
 
-                    echo "Successfully created tag ${TAG_NAME} with single file"
+                    echo "Successfully created tag ${TAG_NAME}"
                 fi
             else
-                echo "Error: DVC file ${CSV_FILE}.dvc not found"
+                echo "Error: DVC file ${CSV_PATH}.dvc not found"
                 exit 1
             fi
         """,
@@ -403,4 +445,5 @@ with DAG(
     # Define task dependencies
     # debug_config >> init_git_dvc >> scrape_data >> preprocess_data >> dvc_add_preprocessed >> \
     # build_features >> train_models >> dvc_push >> notify_inference >> cleanup_files
-    debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
+    # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
+    # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
