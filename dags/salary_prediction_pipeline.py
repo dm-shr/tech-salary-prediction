@@ -333,7 +333,7 @@ with DAG(
 
             # Git operations
             if [ -f "${CSV_PATH}.dvc" ]; then
-                TAG_NAME=$(basename ${CSV_PATH} .csv)
+                TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
 
                 git add -f "${CSV_PATH}.dvc"
 
