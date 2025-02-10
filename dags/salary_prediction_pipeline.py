@@ -186,6 +186,10 @@ with DAG(
     scrape_data = BashOperator(
         task_id="scrape_data",
         bash_command="""
+            set -e
+            export HOME=/home/airflow
+            export PATH="/home/airflow/.local/bin:$PATH"
+            cd ${REPO_PATH}
             python -m src.scraping.main
         """,
         cwd=REPO_PATH,

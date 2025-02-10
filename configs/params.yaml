@@ -8,12 +8,12 @@ scraping:
     start_date: null  # will default to 1 day ago, format as "YYYY-MM-DD"
     end_date: null  # will default to today, format as "YYYY-MM-DD"
     per_page: 5
-    max_pages: 2
+    max_pages: 1
 
   getmatch:
     enabled: true
     output_filename_base: "data/raw/getmatch/raw"
-    num_pages: 2
+    num_pages: 1
     output_format: "csv"
 
 # Data Preprocessing
