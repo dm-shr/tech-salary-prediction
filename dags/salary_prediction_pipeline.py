@@ -200,6 +200,7 @@ with DAG(
         task_id="preprocess_data",
         bash_command="""
             # Run preprocessing and capture output path
+            cd ${REPO_PATH}
             OUTPUT=$(python -m src.preprocessing.main)
             CSV_PATH=$(echo "$OUTPUT" | grep "MERGED_CSV_PATH=" | cut -d'=' -f2)
 
@@ -219,7 +220,7 @@ with DAG(
             export PATH="/home/airflow/.local/bin:$PATH"
             cd ${REPO_PATH}
 
-            # Get CSV path from previous task
+            # Get CSV path and ensure it's relative to repo root
             source /tmp/merged_csv_path
             echo "Working with file: ${CSV_PATH}"
 

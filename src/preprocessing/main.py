@@ -1,5 +1,6 @@
 import hashlib
 import logging
+import os
 import re
 from datetime import datetime
 from datetime import timedelta
@@ -282,7 +283,9 @@ class JobDataPreProcessor:
 def main(logger: logging.Logger):
     processor = JobDataPreProcessor(logger)
     output_path = processor.process()
-    print(f"MERGED_CSV_PATH={output_path}")  # Special output format for Airflow
+    # Print full path relative to repository root for Airflow
+    repo_relative_path = os.path.relpath(output_path, os.getcwd())
+    print(f"MERGED_CSV_PATH={repo_relative_path}")
 
 
 if __name__ == "__main__":
