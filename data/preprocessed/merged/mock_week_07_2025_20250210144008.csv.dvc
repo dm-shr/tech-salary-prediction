@@ -1,0 +1,5 @@
+outs:
+- md5: a9a22a8a9ac32f9c9a43af125de53659
+  size: 30
+  hash: md5
+  path: mock_week_07_2025_20250210144008.csv
