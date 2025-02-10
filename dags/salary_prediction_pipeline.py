@@ -279,36 +279,21 @@ with DAG(
             if [ -f "${CSV_PATH}.dvc" ]; then
                 TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
 
-                # Create a new branch for this specific change
-                TEMP_BRANCH="${TAG_NAME}_branch"
-
-                # Fetch latest changes but don't merge them
-                git fetch origin ${GIT_BRANCH}
-
-                # Create a new branch from the latest remote state
-                git checkout -b ${TEMP_BRANCH} origin/${GIT_BRANCH}
-
-                # Add only the specific DVC file
+                # Add only the specific DVC file and create tag
                 git add -f "${CSV_PATH}.dvc"
 
                 if ! git diff --staged --quiet; then
-                    # Create commit with just this change
+                    # Create commit (needed for tag) but don't push it
                     git commit -m "Add ${TAG_NAME}"
 
-                    # Create tag
+                    # Create and push tag only
                     git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
-
-                    # Push tag first
                     git push origin "${TAG_NAME}"
 
-                    # Push the branch with the single commit
-                    git push origin ${TEMP_BRANCH}:${GIT_BRANCH}
+                    echo "Successfully created and pushed tag ${TAG_NAME}"
 
-                    echo "Successfully created tag ${TAG_NAME} and pushed changes"
-
-                    # Clean up temporary branch
-                    git checkout ${GIT_BRANCH}
-                    git branch -D ${TEMP_BRANCH}
+                    # Reset the commit to keep the branch clean
+                    git reset HEAD~1 --hard
                 fi
             else
                 echo "Error: DVC file ${CSV_PATH}.dvc not found"
