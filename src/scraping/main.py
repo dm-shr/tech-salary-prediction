@@ -60,6 +60,10 @@ def main(logger: logging.Logger):
     logger.info("Starting scraping process...")
 
     try:
+        # log cwd
+        logger.info(f"Current working directory: {os.getcwd()}")
+        # print data directory contents
+        logger.info(f"Data directory contents: {os.listdir('../data')}")
         # Load configuration
         config = load_config()
         config = config.get("scraping", {})
