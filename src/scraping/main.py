@@ -63,7 +63,8 @@ def main(logger: logging.Logger):
         # log cwd
         logger.info(f"Current working directory: {os.getcwd()}")
         # print data directory contents
-        logger.info(f"Data directory contents: {os.listdir('../data')}")
+        logger.info(f"root directory contents: {os.listdir()}")
+        logger.info(f"Data directory contents: {os.listdir('data')}")
         # Load configuration
         config = load_config()
         config = config.get("scraping", {})
