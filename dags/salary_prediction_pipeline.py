@@ -254,6 +254,82 @@ with DAG(
             "MOCK_FILENAME": MOCK_FILENAME,
         },
     )
+
+    dvc_push_merged = BashOperator(
+        task_id="dvc_push_merged",
+        bash_command="""
+            set -e
+            export HOME=/home/airflow
+            export PATH="/home/airflow/.local/bin:$PATH"
+            cd ${REPO_PATH}
+
+            # Get CSV path from previous task
+            source /tmp/merged_csv_path
+            echo "Processing file: ${CSV_PATH}"
+
+            # Configure git
+            git config user.email "${GIT_EMAIL}" || true
+            git config user.name "${GIT_NAME}" || true
+            git config --global core.hooksPath /dev/null
+
+            # Push to DVC first
+            python -m dvc push -v
+
+            # Git operations
+            if [ -f "${CSV_PATH}.dvc" ]; then
+                TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
+
+                # Create a new branch for this specific change
+                TEMP_BRANCH="${TAG_NAME}_branch"
+
+                # Fetch latest changes but don't merge them
+                git fetch origin ${GIT_BRANCH}
+
+                # Create a new branch from the latest remote state
+                git checkout -b ${TEMP_BRANCH} origin/${GIT_BRANCH}
+
+                # Add only the specific DVC file
+                git add -f "${CSV_PATH}.dvc"
+
+                if ! git diff --staged --quiet; then
+                    # Create commit with just this change
+                    git commit -m "Add ${TAG_NAME}"
+
+                    # Create tag
+                    git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
+
+                    # Push tag first
+                    git push origin "${TAG_NAME}"
+
+                    # Push the branch with the single commit
+                    git push origin ${TEMP_BRANCH}:${GIT_BRANCH}
+
+                    echo "Successfully created tag ${TAG_NAME} and pushed changes"
+
+                    # Clean up temporary branch
+                    git checkout ${GIT_BRANCH}
+                    git branch -D ${TEMP_BRANCH}
+                fi
+            else
+                echo "Error: DVC file ${CSV_PATH}.dvc not found"
+                exit 1
+            fi
+        """,
+        cwd=REPO_PATH,
+        env={
+            "REPO_PATH": REPO_PATH,
+            "GIT_BRANCH": os.getenv("GIT_BRANCH"),
+            "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+            "GIT_NAME": os.getenv("GIT_NAME"),
+            "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+            "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+            "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
+            "MOCK_FILENAME": MOCK_FILENAME,
+        },
+    )
+
     #     dvc_add_preprocessed = BashOperator(
     #         task_id='dvc_add_preprocessed',
     #         bash_command='''
@@ -311,60 +387,60 @@ with DAG(
     #         }
     #     )
 
-    dvc_push_merged = BashOperator(
-        task_id="dvc_push_merged",
-        bash_command="""
-            set -e
-            export HOME=/home/airflow
-            export PATH="/home/airflow/.local/bin:$PATH"
-            cd ${REPO_PATH}
+    # dvc_push_merged = BashOperator(
+    #     task_id="dvc_push_merged",
+    #     bash_command="""
+    #         set -e
+    #         export HOME=/home/airflow
+    #         export PATH="/home/airflow/.local/bin:$PATH"
+    #         cd ${REPO_PATH}
 
-            # Get CSV path from previous task
-            source /tmp/merged_csv_path
-            echo "Processing file: ${CSV_PATH}"
+    #         # Get CSV path from previous task
+    #         source /tmp/merged_csv_path
+    #         echo "Processing file: ${CSV_PATH}"
 
-            # Configure git
-            git config user.email "${GIT_EMAIL}" || true
-            git config user.name "${GIT_NAME}" || true
-            git config --global core.hooksPath /dev/null
+    #         # Configure git
+    #         git config user.email "${GIT_EMAIL}" || true
+    #         git config user.name "${GIT_NAME}" || true
+    #         git config --global core.hooksPath /dev/null
 
-            # Push to DVC first
-            python -m dvc push -v
+    #         # Push to DVC first
+    #         python -m dvc push -v
 
-            # Git operations
-            if [ -f "${CSV_PATH}.dvc" ]; then
-                TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
+    #         # Git operations
+    #         if [ -f "${CSV_PATH}.dvc" ]; then
+    #             TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
 
-                git add -f "${CSV_PATH}.dvc"
+    #             git add -f "${CSV_PATH}.dvc"
 
-                if ! git diff --staged --quiet; then
-                    # Create commit and tag
-                    git commit -m "Add ${TAG_NAME}"
-                    git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
-                    git push origin "${TAG_NAME}"
-                    git push origin ${GIT_BRANCH}
+    #             if ! git diff --staged --quiet; then
+    #                 # Create commit and tag
+    #                 git commit -m "Add ${TAG_NAME}"
+    #                 git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
+    #                 git push origin "${TAG_NAME}"
+    #                 git push origin ${GIT_BRANCH}
 
-                    echo "Successfully created tag ${TAG_NAME}"
-                fi
-            else
-                echo "Error: DVC file ${CSV_PATH}.dvc not found"
-                exit 1
-            fi
-        """,
-        cwd=REPO_PATH,
-        env={
-            "REPO_PATH": REPO_PATH,
-            "GIT_BRANCH": os.getenv("GIT_BRANCH"),
-            "GIT_EMAIL": os.getenv("GIT_EMAIL"),
-            "GIT_NAME": os.getenv("GIT_NAME"),
-            "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
-            "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
-            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
-            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
-            "MOCK_FILENAME": MOCK_FILENAME,
-        },
-    )
+    #                 echo "Successfully created tag ${TAG_NAME}"
+    #             fi
+    #         else
+    #             echo "Error: DVC file ${CSV_PATH}.dvc not found"
+    #             exit 1
+    #         fi
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "REPO_PATH": REPO_PATH,
+    #         "GIT_BRANCH": os.getenv("GIT_BRANCH"),
+    #         "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+    #         "GIT_NAME": os.getenv("GIT_NAME"),
+    #         "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+    #         "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
+    #         "MOCK_FILENAME": MOCK_FILENAME,
+    #     },
+    # )
 
     # # Push only merged data DVC changes
     # dvc_push = BashOperator(
