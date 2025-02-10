@@ -276,11 +276,13 @@ class JobDataPreProcessor:
         self.s3_loader.upload_data("historical", self.output_path)
 
         self.logger.info("Processing completed.")
+        return self.output_path
 
 
 def main(logger: logging.Logger):
     processor = JobDataPreProcessor(logger)
-    processor.process()
+    output_path = processor.process()
+    print(f"MERGED_CSV_PATH={output_path}")  # Special output format for Airflow
 
 
 if __name__ == "__main__":
