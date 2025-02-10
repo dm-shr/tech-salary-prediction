@@ -42,7 +42,9 @@ class JobDataPreProcessor:
         )
 
         # Construct merged and output paths
-        self.merged_path = f"{config['preprocessing']['merged_path']}_week_{week_info['week_number']}_year_{week_info['year']}.csv"
+        current_time = datetime.now().strftime("%H%M%S")
+        self.merged_path = f"{config['preprocessing']['merged_path']}_week_{week_info['week_number']}_year_{week_info['year']}_{current_time}.csv"
+
         self.historical_data_path = config["preprocessing"]["historical_data_path"]
         self.output_path = config["preprocessing"]["output_path"]
         self.bottom_percentile = config["preprocessing"]["salary_outliers"]["bottom_percentile"]
