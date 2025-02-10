@@ -306,8 +306,8 @@ with DAG(
     #         }
     #     )
 
-    dvc_push_mock = BashOperator(
-        task_id="dvc_push_mock",
+    dvc_push_merged = BashOperator(
+        task_id="dvc_push_merged",
         bash_command="""
             set -e
             export HOME=/home/airflow
@@ -446,4 +446,4 @@ with DAG(
     # debug_config >> init_git_dvc >> scrape_data >> preprocess_data >> dvc_add_preprocessed >> \
     # build_features >> train_models >> dvc_push >> notify_inference >> cleanup_files
     # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
-    # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
+    debug_config >> init_git_dvc >> dvc_add_merged >> dvc_push_merged
