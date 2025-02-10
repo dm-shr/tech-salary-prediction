@@ -277,14 +277,14 @@ class JobDataPreProcessor:
         self.s3_loader.upload_data("historical", self.output_path)
 
         self.logger.info("Processing completed.")
-        return self.output_path
+        return self.merged_path
 
 
 def main(logger: logging.Logger):
     processor = JobDataPreProcessor(logger)
-    output_path = processor.process()
+    merged_path = processor.process()
     # Print full path relative to repository root for Airflow
-    repo_relative_path = os.path.relpath(output_path, os.getcwd())
+    repo_relative_path = os.path.relpath(merged_path, os.getcwd())
     print(f"MERGED_CSV_PATH={repo_relative_path}")
 
 
