@@ -446,4 +446,11 @@ with DAG(
     # debug_config >> init_git_dvc >> scrape_data >> preprocess_data >> dvc_add_preprocessed >> \
     # build_features >> train_models >> dvc_push >> notify_inference >> cleanup_files
     # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
-    debug_config >> init_git_dvc >> dvc_add_merged >> dvc_push_merged
+    (
+        debug_config
+        >> init_git_dvc
+        >> scrape_data
+        >> preprocess_data
+        >> dvc_add_merged
+        >> dvc_push_merged
+    )
