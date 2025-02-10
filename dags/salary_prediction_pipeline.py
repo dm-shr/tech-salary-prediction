@@ -78,8 +78,8 @@ with DAG(
 
                 # Start from base state - either base tag or main branch
                 echo "Checking out base state..."
-                if git fetch origin && git checkout base-state 2>/dev/null; then
-                    echo "Using base-state tag"
+                if git fetch origin && git checkout base-state-test 2>/dev/null; then
+                    echo "Using base-state-test tag"
                 else
                     echo "Base tag not found, using main branch"
                     git checkout main
@@ -94,8 +94,8 @@ with DAG(
             else
                 # Fresh clone starting from base state
                 git clone ${GIT_REPO_URL} .
-                if git fetch origin && git checkout base-state 2>/dev/null; then
-                    echo "Using base-state tag"
+                if git fetch origin && git checkout base-state-test 2>/dev/null; then
+                    echo "Using base-state-test tag"
                 else
                     echo "Base tag not found, using main branch"
                     git checkout main
