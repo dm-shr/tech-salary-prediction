@@ -271,9 +271,9 @@ class JobDataPreProcessor:
             self.logger.info(f"Length of data after filtering old entries: {len(merged_data)}")
 
         self.logger.info(f"Length of data after cleaning: {len(merged_data)}")
-        self.logger.info("Saving processed data...")
+        self.logger.info(f"Saving processed data to {self.output_path} and S3...")
         merged_data.to_csv(self.output_path, index=False)
-        self.s3_loader.upload_data("historical", self.historical_data_path)
+        self.s3_loader.upload_data("historical", self.output_path)
 
         self.logger.info("Processing completed.")
 

@@ -1,4 +1,4 @@
-is_test: false
+is_test: true
 
 # Data Collection
 scraping:
@@ -78,7 +78,7 @@ features:
   bi_gru_cnn:
     features_dir: "data/processed/bi_gru_cnn"
 
-  test_size: 0.25 # 25% of the data will be used for testing the downstream pipeline
+  test_size: 1 # 25% of the data will be used for testing the downstream pipeline
 
 # Models
 models:
@@ -151,7 +151,7 @@ training:
 # Experiment Tracking
 logging:
   mlflow:
-    tracking_uri: "http://localhost:5000"
+    tracking_uri: "http://mlflow:5000"  # Update to use service name
     experiment_name: "salary_prediction"
 
   save_artifacts: true

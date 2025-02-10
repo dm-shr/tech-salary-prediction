@@ -11,6 +11,7 @@ from transformers import AutoTokenizer
 from src.preprocessing.main import JobDataPreProcessor
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
+from src.utils.utils import setup_logging
 
 
 class FeatureBuilder:
@@ -451,3 +452,8 @@ def main(logger: logging.Logger):
     except Exception as e:
         logger.critical(f"Application failed: {str(e)}")
         raise
+
+
+if __name__ == "__main__":
+    logger = setup_logging()
+    main(logger)
