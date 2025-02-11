@@ -24,7 +24,6 @@ x-airflow-common: &airflow-common
     - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
     - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
     - GIT_REPO_URL=${GIT_REPO_URL}  # Add this
-    - GIT_BRANCH=${GIT_BRANCH:-main}  # Add this
     - GITHUB_TOKEN=${GITHUB_TOKEN}  # Add this instead of mounting SSH keys
   volumes:
     - ./dags:/opt/airflow/dags
@@ -101,12 +100,6 @@ services:
     command: >
         bash -c "
         cd /opt/airflow/repo && \
-        git init && \
-        git remote remove origin || true && \
-        git remote add origin ${GIT_REPO_URL} && \
-        git fetch origin && \
-        git checkout main && \
-        git config pull.rebase false && \
         airflow db init && \
         airflow db upgrade && \
         airflow webserver

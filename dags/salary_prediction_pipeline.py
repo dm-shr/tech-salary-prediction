@@ -76,17 +76,25 @@ with DAG(
                 git config --global url."https://oauth2:${GITHUB_TOKEN}@github.com".insteadOf "https://github.com"
                 git config pull.rebase false
 
-                # Start from base state - either base tag or main branch
-                echo "Checking out base state..."
-                if git fetch origin && git checkout base-state-test 2>/dev/null; then
-                    echo "Using base-state-test tag"
-                else
-                    echo "Base tag not found, using main branch"
-                    git checkout main
-                fi
+                # Clean up any existing merge conflicts or leftover state
+                git reset --hard
+                git clean -fd
 
-                # Clean checkout of target branch
-                git checkout -B ${GIT_BRANCH}
+                # OPTION 1: Use current state (for development)
+                if [ "${USE_CURRENT_STATE}" = "true" ]; then
+                    echo "Using current state..."
+                    git checkout ${GIT_BRANCH} || git checkout -b ${GIT_BRANCH}
+                # OPTION 2: Start from base state (for production)
+                else
+                    echo "Using base state..."
+                    if git fetch origin && git checkout base-state-test 2>/dev/null; then
+                        echo "Using base-state-test tag"
+                    else
+                        echo "Base tag not found, using main branch"
+                        git checkout main
+                    fi
+                    git checkout -B ${GIT_BRANCH}
+                fi
 
                 # Clean data directory but keep DVC cache
                 find data/preprocessed/merged -type f -name "*.csv" -delete
@@ -94,11 +102,13 @@ with DAG(
             else
                 # Fresh clone starting from base state
                 git clone ${GIT_REPO_URL} .
-                if git fetch origin && git checkout base-state-test 2>/dev/null; then
-                    echo "Using base-state-test tag"
-                else
-                    echo "Base tag not found, using main branch"
-                    git checkout main
+                if [ "${USE_CURRENT_STATE}" != "true" ]; then
+                    if git fetch origin && git checkout base-state-test 2>/dev/null; then
+                        echo "Using base-state-test tag"
+                    else
+                        echo "Base tag not found, using main branch"
+                        git checkout main
+                    fi
                 fi
                 git checkout -b ${GIT_BRANCH}
 
@@ -126,6 +136,7 @@ with DAG(
             "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
             "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
             "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+            "USE_CURRENT_STATE": os.getenv("USE_CURRENT_STATE", "false"),  # Add this line
         },
     )
 
