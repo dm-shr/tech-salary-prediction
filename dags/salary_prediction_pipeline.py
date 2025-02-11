@@ -519,4 +519,5 @@ with DAG(
         >> preprocess_data
         >> dvc_add_merged
         >> dvc_push_merged
+        >> notify_inference
     )
