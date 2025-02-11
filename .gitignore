@@ -1,28 +1,28 @@
 # DVC - only these entries, remove duplicates
-/data/preprocessed/merged/*.csv
-.dvc/cache
-.dvc/tmp
-!.dvc/.gitignore
-!.dvc/config
-!.dvc/plots
-!.dvc/schemas
+backend/data/preprocessed/merged/*.csv
+backend/.dvc/cache
+backend/.dvc/tmp
+!backend/.dvc/.gitignore
+!backend/.dvc/config
+!backend/.dvc/plots
+!backend/.dvc/schemas
 
 # Data and models - ignore everything first
-data/*
-data/**/*
+backend/data/*
+backend/data/**/*
 
-models/*
-models/**/*
+backend/models/*
+backend/models/**/*
 
 # Then explicitly track .gitkeep files and .dvc files
-!data/
-!data/**/
-!data/**/.gitkeep
-!data/**/*.dvc
+!backend/data/
+!backend/data/**/
+!backend/data/**/.gitkeep
+!backend/data/**/*.dvc
 
-!models/
-!models/**/
-!models/**/.gitkeep
+!backend/models/
+!backend/models/**/
+!backend/models/**/.gitkeep
 
 **/history/
 **/checkpoints/
@@ -204,10 +204,10 @@ cython_debug/
 .DS_Store
 
 # mlflow
+backend/mlruns/
+backend/mlartifacts/
 mlruns/
 mlartifacts/
-
-
 
 # Airflow
 logs/
