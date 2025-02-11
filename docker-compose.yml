@@ -33,12 +33,14 @@ x-airflow-common: &airflow-common
     - ~/.aws:/home/airflow/.aws:ro
     - inference-models:/app/models  # Add this line
     - inference-models:/opt/airflow/inference/models  # Add shared volume with inference
+    - /var/run/docker.sock:/var/run/docker.sock  # Mount the Docker socket
     # Remove these lines:
     # - ~/.ssh:/home/airflow/.ssh:ro
     # - ~/.gitconfig:/home/airflow/.gitconfig:ro
   depends_on:
     postgres:
       condition: service_healthy
+  user: "50000:0" # Ensure airflow user has correct permissions
 
 services:
   postgres:
@@ -72,10 +74,12 @@ services:
     volumes:
       - .:/tmp/repo:ro  # Mount local directory as read-only
       - airflow-repo:/opt/airflow/repo
+      - inference-models:/opt/airflow/inference/models # Mount inference models volume
     command: >
       sh -c "
         cp -r /tmp/repo/. /opt/airflow/repo/ && \
-        chown -R 50000:50000 /opt/airflow/repo/
+        chown -R 50000:0 /opt/airflow/repo/ && \
+        chown -R 50000:0 /opt/airflow/inference/models
       "
     depends_on:
       - postgres
@@ -97,6 +101,7 @@ services:
 
   webserver:
     <<: *airflow-common
+    user: "50000:0" # Ensure airflow user has correct permissions
     command: >
         bash -c "
         cd /opt/airflow/repo && \
@@ -121,6 +126,7 @@ services:
 
   scheduler:
     <<: *airflow-common
+    # user: "50000:0" # Ensure airflow user has correct permissions
     command: airflow scheduler
     depends_on:
       airflow-init:

@@ -8,6 +8,8 @@ from airflow.operators.python import PythonOperator
 from airflow.utils.dates import days_ago
 from dotenv import load_dotenv
 
+import docker
+
 
 # Add debug logging
 def print_config():
@@ -100,7 +102,7 @@ with DAG(
                 find data/preprocessed/merged -type f -name "*.csv" -delete
                 find data/preprocessed/merged -type f -name "*.dvc" -delete
             else
-                # Fresh clone starting from base state
+                # Fresh clone
                 git clone ${GIT_REPO_URL} .
                 if [ "${USE_CURRENT_STATE}" != "true" ]; then
                     if git fetch origin && git checkout base-state-test 2>/dev/null; then
@@ -140,6 +142,181 @@ with DAG(
         },
     )
 
+    # # Run scraping with DVC
+    # scrape_data = BashOperator(
+    #     task_id="scrape_data",
+    #     bash_command="""
+    #         # set -e
+    #         # export HOME=/home/airflow
+    #         # export PATH="/home/airflow/.local/bin:$PATH"
+    #         # cd ${REPO_PATH}
+    #         python -m src.scraping.main
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "WEEK": '{{ execution_date.strftime("%V") }}',
+    #         "YEAR": '{{ execution_date.strftime("%Y") }}',
+    #     },
+    # )
+
+    # # Preprocess with DVC tracking
+    # preprocess_data = BashOperator(
+    #     task_id="preprocess_data",
+    #     bash_command="""
+    #         # Run preprocessing and capture output path
+    #         cd ${REPO_PATH}
+    #         OUTPUT=$(python -m src.preprocessing.main)
+    #         CSV_PATH=$(echo "$OUTPUT" | grep "MERGED_CSV_PATH=" | cut -d'=' -f2)
+
+    #         # Save path for next task
+    #         echo "CSV_PATH=${CSV_PATH}" > /tmp/merged_csv_path
+
+    #         echo "Generated CSV file: ${CSV_PATH}"
+    #     """,
+    #     cwd=REPO_PATH,
+    # )
+
+    # dvc_add_merged = BashOperator(
+    #     task_id="dvc_add_merged",
+    #     bash_command="""
+    #         set -e
+    #         export HOME=/home/airflow
+    #         export PATH="/home/airflow/.local/bin:$PATH"
+    #         cd ${REPO_PATH}
+
+    #         # Get CSV path and ensure it's relative to repo root
+    #         source /tmp/merged_csv_path
+    #         echo "Working with file: ${CSV_PATH}"
+
+    #         # Configure git
+    #         git config user.email "${GIT_EMAIL}" || true
+    #         git config user.name "${GIT_NAME}" || true
+    #         git config --global core.hooksPath /dev/null
+
+    #         echo "Adding file to DVC..."
+    #         python -m dvc add "${CSV_PATH}" -v
+
+    #         echo "DVC status after add:"
+    #         python -m dvc status
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "REPO_PATH": REPO_PATH,
+    #         "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+    #         "GIT_NAME": os.getenv("GIT_NAME"),
+    #         "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+    #         "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "AWS_ALLOW_HTTP": "true",
+    #         "DVC_CACHE_UMASK": "002",
+    #         "PATH": f"/home/airflow/.local/bin:{os.environ.get('PATH', '')}",
+    #         "MOCK_FILENAME": MOCK_FILENAME,
+    #     },
+    # )
+
+    # dvc_push_merged = BashOperator(
+    #     task_id="dvc_push_merged",
+    #     bash_command="""
+    #         set -e
+    #         export HOME=/home/airflow
+    #         export PATH="/home/airflow/.local/bin:$PATH"
+    #         cd ${REPO_PATH}
+
+    #         # Get CSV path from previous task
+    #         source /tmp/merged_csv_path
+    #         echo "Processing file: ${CSV_PATH}"
+
+    #         # Configure git
+    #         git config user.email "${GIT_EMAIL}" || true
+    #         git config user.name "${GIT_NAME}" || true
+    #         git config --global core.hooksPath /dev/null
+
+    #         # Push to DVC first
+    #         python -m dvc push -v
+
+    #         # Git operations
+    #         if [ -f "${CSV_PATH}.dvc" ]; then
+    #             TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
+
+    #             # Add only the specific DVC file and create tag
+    #             git add -f "${CSV_PATH}.dvc"
+
+    #             if ! git diff --staged --quiet; then
+    #                 # Create commit (needed for tag) but don't push it
+    #                 git commit -m "Add ${TAG_NAME}"
+
+    #                 # Create and push tag only
+    #                 git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
+    #                 git push origin "${TAG_NAME}"
+
+    #                 echo "Successfully created and pushed tag ${TAG_NAME}"
+
+    #                 # Reset the commit to keep the branch clean
+    #                 git reset HEAD~1 --hard
+    #             fi
+    #         else
+    #             echo "Error: DVC file ${CSV_PATH}.dvc not found"
+    #             exit 1
+    #         fi
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "REPO_PATH": REPO_PATH,
+    #         "GIT_BRANCH": os.getenv("GIT_BRANCH"),
+    #         "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+    #         "GIT_NAME": os.getenv("GIT_NAME"),
+    #         "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+    #         "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
+    #         "MOCK_FILENAME": MOCK_FILENAME,
+    #     },
+    # )
+
+    # After successful push, trigger model update in inference service
+    notify_inference = PythonOperator(
+        task_id="notify_inference",
+        python_callable=lambda: restart_docker_container(
+            "tech-salary-prediction-inference-1"
+        ),  # Replace "inference" with your container name
+        dag=dag,
+    )
+
+    def restart_docker_container(container_name):
+        """Restarts a Docker container using the Docker API."""
+        try:
+            client = docker.from_env()
+            container = client.containers.get(container_name)
+            container.restart()
+            print(f"Container '{container_name}' restarted successfully.")
+        except docker.errors.NotFound:
+            print(f"Container '{container_name}' not found.")
+        except docker.errors.APIError as e:
+            print(f"Error restarting container '{container_name}': {e}")
+
+    # notify_inference = BashOperator(
+    #     task_id="notify_inference",
+    #     bash_command="""
+    #         set -e
+    #         mkdir -p /opt/airflow/inference/models/
+    #         touch /opt/airflow/inference/models/.update
+
+    #         # Wait for inference service to process the update
+    #         echo "Waiting for inference service to update..."
+    #         sleep 10
+
+    #         # Check if inference service is healthy
+    #         if curl -sf "http://inference:8501/health"; then
+    #             echo "Inference service is healthy"
+    #         else
+    #             echo "Warning: Inference service may not be running"
+    #             exit 0
+    #         fi
+    #     """,
+    #     cwd=REPO_PATH,
+    # )
     # dvc_add_mock = BashOperator(
     #     task_id="dvc_add_mock",
     #     bash_command="""
@@ -191,140 +368,6 @@ with DAG(
     #         "MOCK_FILENAME": MOCK_FILENAME,
     #     },
     # )
-
-    ###
-    # Run scraping with DVC
-    scrape_data = BashOperator(
-        task_id="scrape_data",
-        bash_command="""
-            # set -e
-            # export HOME=/home/airflow
-            # export PATH="/home/airflow/.local/bin:$PATH"
-            # cd ${REPO_PATH}
-            python -m src.scraping.main
-        """,
-        cwd=REPO_PATH,
-        env={
-            "WEEK": '{{ execution_date.strftime("%V") }}',
-            "YEAR": '{{ execution_date.strftime("%Y") }}',
-        },
-    )
-
-    # Preprocess with DVC tracking
-    preprocess_data = BashOperator(
-        task_id="preprocess_data",
-        bash_command="""
-            # Run preprocessing and capture output path
-            cd ${REPO_PATH}
-            OUTPUT=$(python -m src.preprocessing.main)
-            CSV_PATH=$(echo "$OUTPUT" | grep "MERGED_CSV_PATH=" | cut -d'=' -f2)
-
-            # Save path for next task
-            echo "CSV_PATH=${CSV_PATH}" > /tmp/merged_csv_path
-
-            echo "Generated CSV file: ${CSV_PATH}"
-        """,
-        cwd=REPO_PATH,
-    )
-
-    dvc_add_merged = BashOperator(
-        task_id="dvc_add_merged",
-        bash_command="""
-            set -e
-            export HOME=/home/airflow
-            export PATH="/home/airflow/.local/bin:$PATH"
-            cd ${REPO_PATH}
-
-            # Get CSV path and ensure it's relative to repo root
-            source /tmp/merged_csv_path
-            echo "Working with file: ${CSV_PATH}"
-
-            # Configure git
-            git config user.email "${GIT_EMAIL}" || true
-            git config user.name "${GIT_NAME}" || true
-            git config --global core.hooksPath /dev/null
-
-            echo "Adding file to DVC..."
-            python -m dvc add "${CSV_PATH}" -v
-
-            echo "DVC status after add:"
-            python -m dvc status
-        """,
-        cwd=REPO_PATH,
-        env={
-            "REPO_PATH": REPO_PATH,
-            "GIT_EMAIL": os.getenv("GIT_EMAIL"),
-            "GIT_NAME": os.getenv("GIT_NAME"),
-            "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
-            "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
-            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
-            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "AWS_ALLOW_HTTP": "true",
-            "DVC_CACHE_UMASK": "002",
-            "PATH": f"/home/airflow/.local/bin:{os.environ.get('PATH', '')}",
-            "MOCK_FILENAME": MOCK_FILENAME,
-        },
-    )
-
-    dvc_push_merged = BashOperator(
-        task_id="dvc_push_merged",
-        bash_command="""
-            set -e
-            export HOME=/home/airflow
-            export PATH="/home/airflow/.local/bin:$PATH"
-            cd ${REPO_PATH}
-
-            # Get CSV path from previous task
-            source /tmp/merged_csv_path
-            echo "Processing file: ${CSV_PATH}"
-
-            # Configure git
-            git config user.email "${GIT_EMAIL}" || true
-            git config user.name "${GIT_NAME}" || true
-            git config --global core.hooksPath /dev/null
-
-            # Push to DVC first
-            python -m dvc push -v
-
-            # Git operations
-            if [ -f "${CSV_PATH}.dvc" ]; then
-                TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
-
-                # Add only the specific DVC file and create tag
-                git add -f "${CSV_PATH}.dvc"
-
-                if ! git diff --staged --quiet; then
-                    # Create commit (needed for tag) but don't push it
-                    git commit -m "Add ${TAG_NAME}"
-
-                    # Create and push tag only
-                    git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
-                    git push origin "${TAG_NAME}"
-
-                    echo "Successfully created and pushed tag ${TAG_NAME}"
-
-                    # Reset the commit to keep the branch clean
-                    git reset HEAD~1 --hard
-                fi
-            else
-                echo "Error: DVC file ${CSV_PATH}.dvc not found"
-                exit 1
-            fi
-        """,
-        cwd=REPO_PATH,
-        env={
-            "REPO_PATH": REPO_PATH,
-            "GIT_BRANCH": os.getenv("GIT_BRANCH"),
-            "GIT_EMAIL": os.getenv("GIT_EMAIL"),
-            "GIT_NAME": os.getenv("GIT_NAME"),
-            "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
-            "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
-            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
-            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
-            "MOCK_FILENAME": MOCK_FILENAME,
-        },
-    )
 
     #     dvc_add_preprocessed = BashOperator(
     #         task_id='dvc_add_preprocessed',
@@ -485,29 +528,6 @@ with DAG(
     #     }
     # )
 
-    # After successful push, trigger model update in inference service
-    notify_inference = BashOperator(
-        task_id="notify_inference",
-        bash_command="""
-            set -e
-            mkdir -p /opt/airflow/inference/models/
-            touch /opt/airflow/inference/models/.update
-
-            # Wait for inference service to process the update
-            echo "Waiting for inference service to update..."
-            sleep 10
-
-            # Check if inference service is healthy
-            if curl -sf "http://inference:8501/health"; then
-                echo "Inference service is healthy"
-            else
-                echo "Warning: Inference service may not be running"
-                exit 0
-            fi
-        """,
-        cwd=REPO_PATH,
-    )
-
     # # Cleanup after successful DVC push
     # cleanup_files = BashOperator(
     #     task_id='cleanup_files',
@@ -523,12 +543,14 @@ with DAG(
     # debug_config >> init_git_dvc >> scrape_data >> preprocess_data >> dvc_add_preprocessed >> \
     # build_features >> train_models >> dvc_push >> notify_inference >> cleanup_files
     # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
-    (
-        debug_config
-        >> init_git_dvc
-        >> scrape_data
-        >> preprocess_data
-        >> dvc_add_merged
-        >> dvc_push_merged
-        >> notify_inference
-    )
+    # (
+    #     debug_config
+    #     >> init_git_dvc
+    #     >> scrape_data
+    #     >> preprocess_data
+    #     >> dvc_add_merged
+    #     >> dvc_push_merged
+    #     >> notify_inference
+    # )
+
+    (debug_config >> init_git_dvc >> notify_inference)
