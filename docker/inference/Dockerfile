@@ -14,11 +14,13 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only requirements files first
-COPY requirements.base.txt requirements.inference.txt ./
+# COPY requirements.base.txt requirements.inference.txt ./
+COPY requirements.base_debug.txt requirements.inference.txt ./
 
 # Install Python dependencies - this layer will be cached unless requirements change
 RUN pip install --upgrade pip && \
-    pip install -r requirements.base.txt && \
+    # pip install -r requirements.base.txt && \
+    pip install -r requirements.base_debug.txt && \
     pip install -r requirements.inference.txt
 
 # Create directories for models and data
