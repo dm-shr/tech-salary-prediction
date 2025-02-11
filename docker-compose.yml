@@ -33,6 +33,7 @@ x-airflow-common: &airflow-common
     - airflow-repo:/opt/airflow/repo
     - ~/.aws:/home/airflow/.aws:ro
     - inference-models:/app/models  # Add this line
+    - inference-models:/opt/airflow/inference/models  # Add shared volume with inference
     # Remove these lines:
     # - ~/.ssh:/home/airflow/.ssh:ro
     # - ~/.gitconfig:/home/airflow/.gitconfig:ro
@@ -189,35 +190,35 @@ services:
       exit 0;
       "
 
-  # inference:
-  #   build:
-  #     context: .
-  #     dockerfile: docker/inference/Dockerfile
-  #   ports:
-  #     - "8501:8501"
-  #   environment:
-  #     - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-  #     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-  #     - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
-  #     - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
-  #     - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
-  #     - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
-  #     - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
-  #   volumes:
-  #     - inference-models:/app/models
-  #   restart: always
-  #   healthcheck:
-  #     test: ["CMD", "curl", "--fail", "http://localhost:8501/health"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 3
-  #   depends_on:
-  #     mlflow:
-  #       condition: service_healthy
+  inference:
+    build:
+      context: .
+      dockerfile: docker/inference/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
+    volumes:
+      - inference-models:/app/models  # Same volume as Airflow
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      mlflow:
+        condition: service_healthy
 
 volumes:
   postgres-db-volume:
   airflow-repo:
   minio-data:
   inference-models:  # Add this line
-  # inference-data:
+  inference-data:

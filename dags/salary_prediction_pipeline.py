@@ -474,28 +474,28 @@ with DAG(
     #     }
     # )
 
-    # # After successful push, trigger model update in inference service
-    # notify_inference = BashOperator(
-    #     task_id='notify_inference',
-    #     bash_command='''
-    #         set -e
-    #         mkdir -p /app/models/
-    #         touch /app/models/.update
+    # After successful push, trigger model update in inference service
+    notify_inference = BashOperator(
+        task_id="notify_inference",
+        bash_command="""
+            set -e
+            mkdir -p /opt/airflow/inference/models/
+            touch /opt/airflow/inference/models/.update
 
-    #         # Wait for inference service to process the update
-    #         echo "Waiting for inference service to update..."
-    #         sleep 10
+            # Wait for inference service to process the update
+            echo "Waiting for inference service to update..."
+            sleep 10
 
-    #         # Check if inference service is healthy
-    #         if curl -sf "http://inference:8501/health"; then
-    #             echo "Inference service is healthy"
-    #         else
-    #             echo "Warning: Inference service may not be running"
-    #             exit 0  # Don't fail the pipeline if inference is not ready
-    #         fi
-    #     ''',
-    #     cwd=REPO_PATH
-    # )
+            # Check if inference service is healthy
+            if curl -sf "http://inference:8501/health"; then
+                echo "Inference service is healthy"
+            else
+                echo "Warning: Inference service may not be running"
+                exit 0
+            fi
+        """,
+        cwd=REPO_PATH,
+    )
 
     # # Cleanup after successful DVC push
     # cleanup_files = BashOperator(
