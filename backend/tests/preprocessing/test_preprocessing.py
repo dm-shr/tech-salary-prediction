@@ -161,7 +161,9 @@ def test_process(
 
     with patch("src.preprocessing.main.load_config", return_value=mock_config), patch(
         "src.preprocessing.main.current_week_info", return_value={"week_number": 1, "year": 2024}
-    ), patch("pandas.DataFrame.to_csv") as mock_to_csv:
+    ), patch("pandas.DataFrame.to_csv") as mock_to_csv, patch(
+        "src.preprocessing.main.S3DataLoader.download_data", return_value=None
+    ):
 
         processor = JobDataPreProcessor(logger)
         processor.process()
