@@ -1,3 +1,15 @@
-# Add patterns of files dvc should ignore, which could improve
-# the performance. Learn more at
-# https://dvc.org/doc/user-guide/dvcignore
+# First ignore everything
+*
+
+# Then explicitly include paths to our data
+!backend/
+!backend/data/
+!backend/data/preprocessed/
+!backend/data/preprocessed/merged/
+!backend/data/preprocessed/merged/*.csv
+
+# Always ignore these
+.git/
+.dvc/
+__pycache__/
+*.py[cod]

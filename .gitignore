@@ -1,20 +1,20 @@
 # DVC - only these entries, remove duplicates
-backend/data/preprocessed/merged/*.csv
-backend/.dvc/cache
-backend/.dvc/tmp
-!backend/.dvc/.gitignore
-!backend/.dvc/config
-!backend/.dvc/plots
-!backend/.dvc/schemas
+.dvc/cache
+.dvc/tmp
+!.dvc/.gitignore
+!.dvc/config
+!.dvc/plots
+!.dvc/schemas
 
 # Data and models - ignore everything first
 backend/data/*
 backend/data/**/*
-
 backend/models/*
 backend/models/**/*
 
 # Then explicitly track .gitkeep files and .dvc files
+!backend/
+
 !backend/data/
 !backend/data/**/
 !backend/data/**/.gitkeep
