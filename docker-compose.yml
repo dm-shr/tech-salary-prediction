@@ -110,7 +110,7 @@ services:
         airflow webserver
         "
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
       interval: 10s
@@ -141,7 +141,7 @@ services:
       context: . # Keep context at the root
       dockerfile: backend/docker/mlflow/Dockerfile # Updated path
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
