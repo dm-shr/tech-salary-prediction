@@ -7,19 +7,15 @@ WORKDIR /app
 # Install system dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    # git \
-    # ssh \
     build-essential \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only requirements files first
-# COPY requirements.base.txt requirements.inference.txt ./
-COPY requirements.base_debug.txt requirements.inference.txt ./
+COPY backend/requirements.base_debug.txt backend/requirements.inference.txt ./
 
 # Install Python dependencies - this layer will be cached unless requirements change
 RUN pip install --upgrade pip && \
-    # pip install -r requirements.base.txt && \
     pip install -r requirements.base_debug.txt && \
     pip install -r requirements.inference.txt
 
@@ -27,9 +23,9 @@ RUN pip install --upgrade pip && \
 RUN mkdir -p /app/models /app/data
 
 # Copy source code and other files - these change more frequently
-COPY src/ ./src/
-COPY configs/ ./configs/
-COPY docker/inference/entrypoint.sh ./entrypoint.sh
+COPY backend/src/ ./src/
+COPY backend/configs/ ./configs/
+COPY backend/docker/inference/entrypoint.sh ./entrypoint.sh
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh

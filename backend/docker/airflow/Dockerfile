@@ -20,8 +20,7 @@ RUN mkdir -p /opt/airflow/repo/data /opt/airflow/repo/models && \
     chmod g+s /opt/airflow/repo/.dvc/tmp
 
 # Install base requirements first for better caching
-# COPY requirements.base.txt requirements.airflow.txt /opt/airflow/
-COPY requirements.base_debug.txt requirements.airflow.txt /opt/airflow/
+COPY backend/requirements.base_debug.txt backend/requirements.airflow.txt /opt/airflow/
 
 USER airflow
 

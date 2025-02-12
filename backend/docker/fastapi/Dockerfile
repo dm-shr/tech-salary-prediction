@@ -2,15 +2,15 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY requirements.base_debug.txt requirements.fastapi.txt ./
+COPY backend/requirements.base_debug.txt backend/requirements.fastapi.txt ./
 
 RUN pip install --upgrade pip && \
     pip install -r requirements.base_debug.txt && \
     pip install -r requirements.fastapi.txt
 
-COPY src/ ./src/
-COPY configs/ ./configs/
-COPY docker/fastapi/entrypoint.sh ./entrypoint.sh
+COPY backend/src/ ./src/
+COPY backend/configs/ ./configs/
+COPY backend/docker/fastapi/entrypoint.sh ./entrypoint.sh
 
 RUN chmod +x /app/entrypoint.sh
 

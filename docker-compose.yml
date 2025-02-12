@@ -1,7 +1,7 @@
 x-airflow-common: &airflow-common
   build:
-    context: ./backend  # Updated context
-    dockerfile: docker/airflow/Dockerfile
+    context: .  # Keep context at the root
+    dockerfile: backend/docker/airflow/Dockerfile # Updated path
   env_file:
     - .env
   environment:
@@ -41,6 +41,7 @@ x-airflow-common: &airflow-common
 services:
   postgres:
     image: postgres:13
+    container_name: postgres  # Renamed container
     environment:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
@@ -56,6 +57,7 @@ services:
   # New service to init Airflow DB and create admin
   airflow-init:
     <<: *airflow-common
+    container_name: airflow-init  # Renamed container
     command: >
       bash -c '
         airflow db init && airflow users create --username admin --password admin --firstname Anonymous --lastname Admin --role Admin --email admin@example.com
@@ -65,6 +67,7 @@ services:
         condition: service_healthy
 
   repo-init:
+    container_name: repo-init  # Renamed container
     # Option 1: Local development setup - copies local files
     image: alpine:latest
     volumes:
@@ -97,6 +100,7 @@ services:
 
   webserver:
     <<: *airflow-common
+    container_name: webserver  # Renamed container
     user: "50000:0" # Ensure airflow user has correct permissions
     command: >
         bash -c "
@@ -122,6 +126,7 @@ services:
 
   scheduler:
     <<: *airflow-common
+    container_name: scheduler  # Renamed container
     # user: "50000:0" # Ensure airflow user has correct permissions
     command: airflow scheduler
     depends_on:
@@ -131,9 +136,10 @@ services:
         condition: service_started
 
   mlflow:
+    container_name: mlflow  # Renamed container
     build:
-      context: ./backend # Updated context
-      dockerfile: docker/mlflow/Dockerfile
+      context: . # Keep context at the root
+      dockerfile: backend/docker/mlflow/Dockerfile # Updated path
     ports:
       - "5000:5000"
     environment:
@@ -157,6 +163,7 @@ services:
 
   minio:
     image: minio/minio
+    container_name: minio-minio  # Renamed container
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -174,6 +181,7 @@ services:
 
   mc:  # Add MinIO client to create initial bucket
     image: minio/mc
+    container_name: minio-mc  # Renamed container
     depends_on:
       minio:
         condition: service_healthy
@@ -186,9 +194,10 @@ services:
       "
 
   inference:
+    container_name: streamlit  # Renamed container
     build:
-      context: ./backend # Updated context
-      dockerfile: docker/inference/Dockerfile
+      context: . # Keep context at the root
+      dockerfile: backend/docker/inference/Dockerfile # Updated path
     ports:
       - "8501:8501"
     environment:
@@ -214,9 +223,10 @@ services:
         condition: service_healthy
 
   fastapi:
+    container_name: fastapi  # Renamed container
     build:
-      context: ./backend # Updated context
-      dockerfile: docker/fastapi/Dockerfile
+      context: . # Keep context at the root
+      dockerfile: backend/docker/fastapi/Dockerfile # Updated path
     ports:
       - "8000:8000"
     environment:

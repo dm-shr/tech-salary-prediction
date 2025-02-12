@@ -34,7 +34,7 @@ default_args = {
 
 
 # Configuration
-REPO_PATH = os.getenv("REPO_PATH", "/opt/airflow/repo")
+REPO_PATH = os.getenv("REPO_PATH", "/opt/airflow/repo")  # Keep REPO_PATH at the root
 
 
 # Add filename generation function
@@ -99,8 +99,8 @@ with DAG(
                 fi
 
                 # Clean data directory but keep DVC cache
-                find data/preprocessed/merged -type f -name "*.csv" -delete
-                find data/preprocessed/merged -type f -name "*.dvc" -delete
+                find backend/data/preprocessed/merged -type f -name "*.csv" -delete
+                find backend/data/preprocessed/merged -type f -name "*.dvc" -delete
             else
                 # Fresh clone
                 git clone ${GIT_REPO_URL} .
@@ -279,7 +279,7 @@ with DAG(
     notify_inference = PythonOperator(
         task_id="notify_inference",
         python_callable=lambda: restart_docker_container(
-            "tech-salary-prediction-inference-1"
+            "streamlit"
         ),  # Replace "inference" with your container name
         dag=dag,
     )
