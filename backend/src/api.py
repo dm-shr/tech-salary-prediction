@@ -1,15 +1,10 @@
-import os
-import sys
-
 # from typing import Dict
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from fastapi import FastAPI
+from pydantic import BaseModel
+from src.utils.utils import load_config
+from src.utils.utils import setup_logging
 
 # from fastapi import HTTPException
-from pydantic import BaseModel
-from utils.utils import load_config, setup_logging
 
 # from src.feature_building.main import FeatureBuilder
 # from training.catboost.model import CatBoostModel
