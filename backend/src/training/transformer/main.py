@@ -105,8 +105,6 @@ def main(logger: logging.Logger, enabled=True):
 
         # Initialize results dictionary
         results = {"final": None}
-        # for i, seed in enumerate(seeds, 1):
-        #     results[f'seed{i}'] = None
 
         # Training loop for each seed
         for i, seed in enumerate(seeds, 1):
@@ -151,7 +149,6 @@ def main(logger: logging.Logger, enabled=True):
                 test_data=test_data,
                 criterion=criterion,
                 optimizer=optimizer,
-                # config=config['models']['transformer'],
                 config=config,
                 device=device,
                 logger=logger,
@@ -193,7 +190,6 @@ def main(logger: logging.Logger, enabled=True):
             train_data=train_data,
             criterion=criterion,
             optimizer=optimizer,
-            # config=config['models']['transformer'],
             config=config,
             device=device,
             logger=logger,

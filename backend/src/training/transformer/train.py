@@ -60,7 +60,6 @@ def fit_eval(
             input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2["attention_mask"].to(
                 device
             )
-            # targets = targets.to(device)
             targets = targets.to(
                 device
             ).squeeze()  # Squeeze the targets to match the shape of outputs
@@ -101,7 +100,6 @@ def fit_eval(
                     input2, attention_mask2 = inputs2["input_ids"].to(device), inputs2[
                         "attention_mask"
                     ].to(device)
-                    # targets = targets.to(device)
                     targets = targets.to(
                         device
                     ).squeeze()  # Squeeze the targets to match the shape of outputs

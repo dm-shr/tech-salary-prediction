@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 class S3ModelLoader:
     def __init__(
         self,
-        # local_model_dir='/app/models',
         local_model_dir="models",
         endpoint_url: Optional[str] = None,
     ):

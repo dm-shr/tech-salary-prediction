@@ -105,7 +105,6 @@ def display_metrics_with_ci(history: dict, logger, mlflow):
         n = len(data)
         if n == 0:
             return np.nan, np.nan, np.nan
-        # m, se = np.nanmean(data), np.nanstd(data) / np.sqrt(n)
         m, se = np.mean(data), np.std(data) / np.sqrt(n)
         t_value = t.ppf(1 - (alpha / 2), n - 1)
         h = se * t_value
@@ -137,9 +136,6 @@ def display_metrics_with_ci(history: dict, logger, mlflow):
 
     r2_train_mean = np.mean(r2_train_values, axis=0)
     r2_test_mean = np.mean(r2_test_values, axis=0)
-
-    # r2_train_mean = np.nanmean(r2_train_values, axis=0)
-    # r2_test_mean = np.nanmean(r2_test_values, axis=0)
 
     r2_train_ci = np.array(
         [calculate_ci(r2_train_values[:, i]) for i in range(r2_train_values.shape[1])]
