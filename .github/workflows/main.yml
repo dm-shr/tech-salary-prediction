@@ -76,7 +76,18 @@ jobs:
       - name: Build and push Docker images
         working-directory: .
         run: |
-          docker-compose build
+          docker-compose build \
+            --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
+            --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
+            --build-arg AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} \
+            --build-arg DVC_REMOTE_URL=${{ secrets.DVC_REMOTE_URL }} \
+            --build-arg MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }} \
+            --build-arg MLFLOW_S3_ENDPOINT_URL=${{ secrets.MLFLOW_S3_ENDPOINT_URL }} \
+            --build-arg MLFLOW_EXPERIMENT_NAME=${{ secrets.MLFLOW_EXPERIMENT_NAME }} \
+            --build-arg GIT_REPO_URL=${{ secrets.GIT_REPO_URL }} \
+            --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
+            --build-arg AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }} \
+            --build-arg FERNET_KEY=${{ secrets.FERNET_KEY }}
           docker tag postgres ghcr.io/${{ github.repository }}/postgres:${{ github.sha }}
           docker tag webserver ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
           docker tag scheduler ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
