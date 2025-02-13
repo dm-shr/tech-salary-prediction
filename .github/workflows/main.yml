@@ -102,14 +102,12 @@ jobs:
             --build-arg GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
             --build-arg AWS_BUCKET_NAME=${{ env.AWS_BUCKET_NAME }} \
             --build-arg FERNET_KEY=${{ env.FERNET_KEY }}
-          docker tag postgres ghcr.io/${{ github.repository }}/postgres:${{ github.sha }}
           docker tag webserver ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
           docker tag scheduler ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
           docker tag mlflow ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
           docker tag minio-minio ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }}
           docker tag streamlit ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }}
           docker tag fastapi ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }}
-          docker push ghcr.io/${{ github.repository }}/postgres:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
