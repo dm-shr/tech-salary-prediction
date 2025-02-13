@@ -130,14 +130,14 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Tag and push latest Docker images
         run: |
-          docker tag ghcr.io/${{ github.repository }}/postgres:${{ github.sha }} ghcr.io/${{ github.repository }}/postgres:latest
+          # docker tag ghcr.io/${{ github.repository }}/postgres:${{ github.sha }} ghcr.io/${{ github.repository }}/postgres:latest
           docker tag ghcr.io/${{ github.repository }}/webserver:${{ github.sha }} ghcr.io/${{ github.repository }}/webserver:latest
           docker tag ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }} ghcr.io/${{ github.repository }}/scheduler:latest
           docker tag ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }} ghcr.io/${{ github.repository }}/mlflow:latest
           docker tag ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }} ghcr.io/${{ github.repository }}/minio-minio:latest
           docker tag ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }} ghcr.io/${{ github.repository }}/streamlit:latest
           docker tag ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }} ghcr.io/${{ github.repository }}/fastapi:latest
-          docker push ghcr.io/${{ github.repository }}/postgres:latest
+          # docker push ghcr.io/${{ github.repository }}/postgres:latest
           docker push ghcr.io/${{ github.repository }}/webserver:latest
           docker push ghcr.io/${{ github.repository }}/scheduler:latest
           docker push ghcr.io/${{ github.repository }}/mlflow:latest
