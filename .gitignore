@@ -1,3 +1,43 @@
+# DVC - only these entries, remove duplicates
+.dvc/cache
+.dvc/tmp
+!.dvc/.gitignore
+!.dvc/config
+!.dvc/plots
+!.dvc/schemas
+
+# Data and models - ignore everything first
+backend/data/*
+backend/data/**/*
+backend/models/*
+backend/models/**/*
+
+# Then explicitly track .gitkeep files and .dvc files
+!backend/
+
+!backend/data/
+!backend/data/**/
+!backend/data/**/.gitkeep
+!backend/data/**/*.dvc
+
+!backend/models/
+!backend/models/**/
+!backend/models/**/.gitkeep
+
+**/history/
+**/checkpoints/
+**/catboost_info/
+misc/
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -127,14 +167,6 @@ celerybeat.pid
 # SageMath parsed files
 *.sage.py
 
-# Environments
-.env
-.venv
-env/
-venv/
-ENV/
-env.bak/
-venv.bak/
 
 # Spyder project settings
 .spyderproject
@@ -167,21 +199,18 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-# data
-/data/
-/models/
-**/history/
-**/checkpoints/
-**/catboost_info/
-*.npy
-*.csv
-*.pkl
-*.pth
-*.pt
 
 # Mac OS
 .DS_Store
 
 # mlflow
+backend/mlruns/
+backend/mlartifacts/
 mlruns/
 mlartifacts/
+
+# Airflow
+logs/
+airflow.db
+airflow.cfg
+webserver_config.py

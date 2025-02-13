@@ -1,0 +1,52 @@
+# See https://pre-commit.com for more information
+# See https://pre-commit.com/hooks.html for more hooks
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.2.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^(.*template.*|notebook/.*|.*\.ipynb)$
+      - id: end-of-file-fixer
+        exclude: ^(.*template.*|notebook/.*|.*\.ipynb)$
+      - id: check-yaml
+        exclude: ^(.*template.*|notebook/.*)$
+      - id: check-added-large-files
+        exclude: ^(.*template.*|notebook/.*)$
+      - id: debug-statements
+        language_version: python3
+        exclude: ^(.*template.*|notebook/.*)$
+
+  - repo: https://github.com/psf/black
+    rev: 22.3.0
+    hooks:
+      - id: black
+        exclude: ^(.*template.*|notebook/.*)$
+        args:
+          - --line-length=100
+
+  - repo: https://github.com/PyCQA/flake8
+    rev: 5.0.4
+    hooks:
+      - id: flake8
+        language_version: python3
+        args:
+          - --max-line-length=150
+          - --ignore=E203,W503,E402
+          - --exclude=*/template/*,notebook/*
+
+  - repo: https://github.com/asottile/reorder_python_imports
+    rev: v3.12.0  # Update to latest version
+    hooks:
+      - id: reorder-python-imports
+        exclude: ^(.*template.*|notebook/.*)$
+        args:
+          - --py37-plus
+          - --application-directories=.:src:backend
+        files: \.py$
+
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v2.29.0
+    hooks:
+      - id: pyupgrade
+        exclude: ^(.*template.*|notebook/.*)$
+        args: [--py36-plus]

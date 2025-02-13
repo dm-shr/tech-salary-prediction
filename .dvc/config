@@ -1,0 +1,6 @@
+[core]
+    remote = storage
+    no_scm = false
+    autostage = true
+['remote "storage"']
+    url = s3://tech-salary-prediction/dvc-storage

@@ -1,0 +1,250 @@
+x-airflow-common: &airflow-common
+  build:
+    context: .
+    dockerfile: backend/docker/airflow/Dockerfile
+  # env_file:
+  #   - .env
+  environment:
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__CORE__FERNET_KEY=${FERNET_KEY}
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    - AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION=True
+    - AIRFLOW__CORE__ENABLE_XCOM_PICKLING=True
+    - AIRFLOW_HOME=/opt/airflow
+    - AIRFLOW__SCHEDULER__DAG_DIR_LIST_INTERVAL=30
+    - AIRFLOW__CORE__DAGS_FOLDER=/opt/airflow/dags
+    - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+    - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+    - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+    - DVC_REMOTE_URL=${DVC_REMOTE_URL}
+    - AWS_ALLOW_HTTP=true
+    - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+    - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+    - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
+    - GIT_REPO_URL=${GIT_REPO_URL}
+    - GITHUB_TOKEN=${GITHUB_TOKEN}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - airflow-repo:/opt/airflow/repo
+    - ~/.aws:/home/airflow/.aws:ro
+    - inference-models:/app/models
+    - inference-models:/opt/airflow/inference/models  # Add shared volume with inference
+    - /var/run/docker.sock:/var/run/docker.sock  # Mount the Docker socket
+  depends_on:
+    postgres:
+      condition: service_healthy
+  user: "50000:0" # Ensure airflow user has correct permissions
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+
+  # service to init Airflow DB and create admin
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    command: >
+      bash -c '
+        airflow db init && airflow users create --username admin --password admin --firstname Anonymous --lastname Admin --role Admin --email admin@example.com
+      '
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  repo-init:
+    container_name: repo-init  # Renamed container
+    # Option 1: Local development setup - copies local files
+    image: alpine:latest
+    volumes:
+      - .:/tmp/repo:ro  # Mount local directory as read-only
+      - airflow-repo:/opt/airflow/repo
+      - inference-models:/opt/airflow/inference/models # Mount inference models volume
+    command: >
+      sh -c "
+        cp -r /tmp/repo/. /opt/airflow/repo/ && \
+        chown -R 50000:0 /opt/airflow/repo/ && \
+        chown -R 50000:0 /opt/airflow/inference/models
+      "
+    depends_on:
+      - postgres
+
+    # Option 2: Remote repository setup - uncomment below and comment out Option 1 when ready
+    # <<: *airflow-common
+    # command: >
+    #   bash -c "
+    #     cd /opt/airflow/repo && \
+    #     git clone ${GIT_REPO_URL} . && \
+    #     git checkout ${GIT_BRANCH} && \
+    #     git config --global credential.helper store && \
+    #     git config --global url.'https://oauth2:${GITHUB_TOKEN}@github.com'.insteadOf 'https://github.com'
+    #   "
+    # volumes:
+    #   - airflow-repo:/opt/airflow/repo
+    # depends_on:
+    #   - postgres
+
+  webserver:
+    <<: *airflow-common
+    container_name: webserver
+    user: "50000:0" # Ensure airflow user has correct permissions
+    command: >
+        bash -c "
+        cd /opt/airflow/repo && \
+        airflow db init && \
+        airflow db upgrade && \
+        airflow webserver
+        "
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+    depends_on:
+      repo-init:
+        condition: service_completed_successfully
+      airflow-init:
+        condition: service_started
+      postgres:
+        condition: service_healthy
+
+  scheduler:
+    <<: *airflow-common
+    container_name: scheduler
+    user: "50000:0" # Ensure airflow user has correct permissions
+    command: airflow scheduler
+    depends_on:
+      airflow-init:
+        condition: service_started
+      webserver:
+        condition: service_started
+
+  mlflow:
+    container_name: mlflow
+    build:
+      context: .
+      dockerfile: backend/docker/mlflow/Dockerfile
+    ports:
+      - "127.0.0.1:5000:5000"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+      - MLFLOW_TRACKING_URI=http://localhost:5000
+      - MLFLOW_S3_IGNORE_TLS=true
+      - ARTIFACT_ROOT=s3://mlflow-artifacts/
+      - MLFLOW_BUCKET_NAME=mlflow-artifacts
+      - MLFLOW_DEFAULT_ARTIFACT_ROOT=s3://mlflow-artifacts/
+      - MLFLOW_S3_UPLOAD_EXTRA_ARGS='{"ACL":"bucket-owner-full-control"}'
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:5000/health"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      minio:
+        condition: service_healthy
+
+  minio:
+    image: minio/minio
+    container_name: minio-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=${AWS_ACCESS_KEY_ID}
+      - MINIO_ROOT_PASSWORD=${AWS_SECRET_ACCESS_KEY}
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio-data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  mc:  # Add MinIO client to create initial bucket
+    image: minio/mc
+    container_name: minio-mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 ${AWS_ACCESS_KEY_ID} ${AWS_SECRET_ACCESS_KEY};
+      /usr/bin/mc mb myminio/mlflow-artifacts || true;
+      /usr/bin/mc anonymous set public myminio/mlflow-artifacts;
+      exit 0;
+      "
+
+  inference:
+    container_name: streamlit
+    build:
+      context: .
+      dockerfile: backend/docker/inference/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
+      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
+    volumes:
+      - inference-models:/app/models  # Same volume as Airflow
+    restart: always
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8501/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    depends_on:
+      fastapi:
+        condition: service_started
+      mlflow:
+        condition: service_healthy
+
+  fastapi:
+    container_name: fastapi
+    build:
+      context: .
+      dockerfile: backend/docker/fastapi/Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+    depends_on:
+      mlflow:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/configs:/app/configs
+    restart: always
+
+volumes:
+  postgres-db-volume:
+  airflow-repo:
+  minio-data:
+  inference-models:
+  inference-data:

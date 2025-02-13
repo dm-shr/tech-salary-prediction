@@ -1,0 +1,15 @@
+# First ignore everything
+*
+
+# Then explicitly include paths to our data
+!backend/
+!backend/data/
+!backend/data/preprocessed/
+!backend/data/preprocessed/merged/
+!backend/data/preprocessed/merged/*.csv
+
+# Always ignore these
+.git/
+.dvc/
+__pycache__/
+*.py[cod]
