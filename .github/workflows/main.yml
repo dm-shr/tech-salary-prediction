@@ -45,12 +45,12 @@ jobs:
           cd backend
           pytest tests/ -vvv --cov=. --cov-report term-missing
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: backend/test-results.xml
       - name: Upload coverage report
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: backend/coverage.xml
