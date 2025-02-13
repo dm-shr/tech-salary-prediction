@@ -2,8 +2,8 @@ x-airflow-common: &airflow-common
   build:
     context: .
     dockerfile: backend/docker/airflow/Dockerfile
-  env_file:
-    - .env
+  # env_file:
+  #   - .env
   environment:
     - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
     - AIRFLOW__CORE__EXECUTOR=LocalExecutor
