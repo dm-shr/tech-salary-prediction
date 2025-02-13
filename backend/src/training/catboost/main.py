@@ -3,6 +3,7 @@ import logging
 
 import numpy as np
 from sklearn.model_selection import train_test_split
+
 from src.training.catboost.model import CatBoostModel
 from src.training.catboost.utils import create_pool_data
 from src.training.catboost.utils import display_metrics_with_ci

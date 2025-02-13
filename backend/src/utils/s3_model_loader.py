@@ -6,6 +6,7 @@ from typing import Optional
 
 import boto3
 from dotenv import load_dotenv
+
 from src.utils.utils import current_week_info
 from src.utils.utils import load_config
 

@@ -1,6 +1,7 @@
 # from typing import Dict
 from fastapi import FastAPI
 from pydantic import BaseModel
+
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
 

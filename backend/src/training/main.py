@@ -2,6 +2,7 @@ import logging
 
 import numpy as np
 from dotenv import load_dotenv
+
 from src.training.blend import blend_and_evaluate
 from src.training.catboost.main import main as train_catboost
 from src.training.transformer.main import main as train_transformer

@@ -2,6 +2,7 @@ import logging
 
 import pytest
 import requests
+
 from src.scraping.getmatch import GetmatchJobScraper
 
 

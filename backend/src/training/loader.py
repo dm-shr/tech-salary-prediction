@@ -1,4 +1,5 @@
 import torch
+
 from src.training.catboost.model import CatBoostModel
 from src.training.transformer.model import SingleBERTWithMLP
 from src.utils.s3_model_loader import S3ModelLoader

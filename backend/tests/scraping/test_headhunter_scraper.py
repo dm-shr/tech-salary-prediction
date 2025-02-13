@@ -4,6 +4,7 @@ from datetime import datetime
 from datetime import timedelta
 
 import pytest
+
 from src.scraping.headhunter import HeadhunterJobScraper
 
 

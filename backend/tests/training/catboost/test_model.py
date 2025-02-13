@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import pytest
 from catboost import Pool
+
 from src.training.catboost.model import CatBoostModel
 from src.training.catboost.utils import create_pool_data
 

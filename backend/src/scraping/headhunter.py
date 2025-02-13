@@ -9,8 +9,9 @@ from datetime import timedelta
 
 import requests
 from bs4 import BeautifulSoup
-from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from tqdm import tqdm
+
+from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 
 
 class HeadhunterJobScraper:

@@ -9,6 +9,7 @@ from typing import Tuple
 import pandas as pd
 import requests
 from bs4 import BeautifulSoup
+
 from src.utils.utils import current_week_info
 
 

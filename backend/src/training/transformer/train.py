@@ -2,8 +2,9 @@ import torch
 from sklearn.metrics import mean_absolute_error
 from sklearn.metrics import r2_score
 from sklearn.metrics import root_mean_squared_error
-from src.training.transformer.dataset import DualTextDataset
 from torch.utils.data import DataLoader
+
+from src.training.transformer.dataset import DualTextDataset
 
 
 def fit_eval(

@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pandas as pd
 import pytest
+
 from src.preprocessing.main import JobDataPreProcessor
 
 

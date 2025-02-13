@@ -1,5 +1,6 @@
 import numpy as np
 import pytest
+
 from src.training.blend import blend_and_evaluate
 from src.training.blend import calculate_metrics
 from src.training.blend import mean_confidence_interval

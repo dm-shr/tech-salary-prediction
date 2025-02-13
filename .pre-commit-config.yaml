@@ -35,14 +35,13 @@ repos:
           - --exclude=*/template/*,notebook/*
 
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.1.0
+    rev: v3.12.0  # Update to latest version
     hooks:
       - id: reorder-python-imports
         exclude: ^(.*template.*|notebook/.*)$
         args:
           - --py37-plus
           - --application-directories=.:src:backend
-          - --add-import=from __future__ import annotations
         files: \.py$
 
   - repo: https://github.com/asottile/pyupgrade

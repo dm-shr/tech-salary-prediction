@@ -1,5 +1,6 @@
 import pytest
 import torch
+
 from src.training.transformer.dataset import DualTextDataset
 from src.training.transformer.dataset import split_tokenized_dict
 

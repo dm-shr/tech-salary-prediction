@@ -6,11 +6,12 @@ from typing import Tuple
 
 import pandas as pd
 import torch
+from transformers import AutoTokenizer
+
 from src.preprocessing.main import JobDataPreProcessor
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
-from transformers import AutoTokenizer
 
 
 class FeatureBuilder:

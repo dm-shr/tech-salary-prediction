@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 from catboost import Pool
 from scipy.stats import t
+
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 
