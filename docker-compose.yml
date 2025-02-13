@@ -72,35 +72,35 @@ services:
 
   repo-init:
     container_name: repo-init  # Renamed container
-    # Option 1: Local development setup - copies local files
-    image: alpine:latest
-    volumes:
-      - .:/tmp/repo:ro  # Mount local directory as read-only
-      - airflow-repo:/opt/airflow/repo
-      - inference-models:/opt/airflow/inference/models # Mount inference models volume
-    command: >
-      sh -c "
-        cp -r /tmp/repo/. /opt/airflow/repo/ && \
-        chown -R 50000:0 /opt/airflow/repo/ && \
-        chown -R 50000:0 /opt/airflow/inference/models
-      "
-    depends_on:
-      - postgres
-
-    # Option 2: Remote repository setup - uncomment below and comment out Option 1 when ready
-    # <<: *airflow-common
-    # command: >
-    #   bash -c "
-    #     cd /opt/airflow/repo && \
-    #     git clone ${GIT_REPO_URL} . && \
-    #     git checkout ${GIT_BRANCH:-main} && \
-    #     git config --global credential.helper store && \
-    #     git config --global url.'https://oauth2:${GITHUB_TOKEN}@github.com'.insteadOf 'https://github.com'
-    #   "
+    # # Option 1: Local development setup - copies local files
+    # image: alpine:latest
     # volumes:
+    #   - .:/tmp/repo:ro  # Mount local directory as read-only
     #   - airflow-repo:/opt/airflow/repo
+    #   - inference-models:/opt/airflow/inference/models # Mount inference models volume
+    # command: >
+    #   sh -c "
+    #     cp -r /tmp/repo/. /opt/airflow/repo/ && \
+    #     chown -R 50000:0 /opt/airflow/repo/ && \
+    #     chown -R 50000:0 /opt/airflow/inference/models
+    #   "
     # depends_on:
     #   - postgres
+
+    # Option 2: Remote repository setup - uncomment below and comment out Option 1 when ready
+    <<: *airflow-common
+    command: >
+      bash -c "
+        cd /opt/airflow/repo && \
+        git clone ${GIT_REPO_URL} . && \
+        git checkout ${GIT_BRANCH} && \
+        git config --global credential.helper store && \
+        git config --global url.'https://oauth2:${GITHUB_TOKEN}@github.com'.insteadOf 'https://github.com'
+      "
+    volumes:
+      - airflow-repo:/opt/airflow/repo
+    depends_on:
+      - postgres
 
   webserver:
     <<: *airflow-common
