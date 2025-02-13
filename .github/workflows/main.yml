@@ -75,19 +75,31 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker images
         working-directory: .
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+          MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
+          MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
+          GIT_REPO_URL: ${{ secrets.GIT_REPO_URL }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          FERNET_KEY: ${{ secrets.FERNET_KEY }}
         run: |
           docker-compose build \
-            --build-arg AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }} \
-            --build-arg AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }} \
-            --build-arg AWS_DEFAULT_REGION=${{ secrets.AWS_DEFAULT_REGION }} \
-            --build-arg DVC_REMOTE_URL=${{ secrets.DVC_REMOTE_URL }} \
-            --build-arg MLFLOW_TRACKING_URI=${{ secrets.MLFLOW_TRACKING_URI }} \
-            --build-arg MLFLOW_S3_ENDPOINT_URL=${{ secrets.MLFLOW_S3_ENDPOINT_URL }} \
-            --build-arg MLFLOW_EXPERIMENT_NAME=${{ secrets.MLFLOW_EXPERIMENT_NAME }} \
-            --build-arg GIT_REPO_URL=${{ secrets.GIT_REPO_URL }} \
-            --build-arg GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }} \
-            --build-arg AWS_BUCKET_NAME=${{ secrets.AWS_BUCKET_NAME }} \
-            --build-arg FERNET_KEY=${{ secrets.FERNET_KEY }}
+            --build-arg AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }} \
+            --build-arg AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }} \
+            --build-arg AWS_DEFAULT_REGION=${{ env.AWS_DEFAULT_REGION }} \
+            --build-arg DVC_REMOTE_URL=${{ env.DVC_REMOTE_URL }} \
+            --build-arg MLFLOW_TRACKING_URI=${{ env.MLFLOW_TRACKING_URI }} \
+            --build-arg MLFLOW_S3_ENDPOINT_URL=${{ env.MLFLOW_S3_ENDPOINT_URL }} \
+            --build-arg MLFLOW_EXPERIMENT_NAME=${{ env.MLFLOW_EXPERIMENT_NAME }} \
+            --build-arg GIT_REPO_URL=${{ env.GIT_REPO_URL }} \
+            --build-arg GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
+            --build-arg AWS_BUCKET_NAME=${{ env.AWS_BUCKET_NAME }} \
+            --build-arg FERNET_KEY=${{ env.FERNET_KEY }}
           docker tag postgres ghcr.io/${{ github.repository }}/postgres:${{ github.sha }}
           docker tag webserver ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
           docker tag scheduler ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
