@@ -90,7 +90,10 @@ jobs:
           AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
           FERNET_KEY: ${{ secrets.FERNET_KEY }}
         run: |
-          docker-compose build \
+          # Set the project name
+          project_name=tech_salary_prediction
+
+          docker-compose -p $project_name build \
             --build-arg AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }} \
             --build-arg AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }} \
             --build-arg AWS_DEFAULT_REGION=${{ env.AWS_DEFAULT_REGION }} \
@@ -102,13 +105,16 @@ jobs:
             --build-arg GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
             --build-arg AWS_BUCKET_NAME=${{ env.AWS_BUCKET_NAME }} \
             --build-arg FERNET_KEY=${{ env.FERNET_KEY }}
-          # Add the following lines to tag the images with the simple names:
-          docker tag ***_webserver ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
-          docker tag ***_scheduler ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
-          docker tag ***_mlflow ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
-          docker tag ***_minio-minio ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }}
-          docker tag ***_streamlit ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }}
-          docker tag ***_fastapi ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }}
+
+          # Tag the images with the correct names
+          docker tag ${project_name}_webserver ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
+          docker tag ${project_name}_scheduler ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
+          docker tag ${project_name}_mlflow ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
+          docker tag ${project_name}_minio-minio ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }}
+          docker tag ${project_name}_streamlit ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }}
+          docker tag ${project_name}_fastapi ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }}
+
+          # Push the images
           docker push ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
           docker push ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
