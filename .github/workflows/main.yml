@@ -24,7 +24,7 @@ jobs:
       - name: Run linters
         run: |
           cd backend
-          pre-commit run --all-files --exclude notebook/
+          pre-commit run --all-files
           pylint --rcfile=../.pylintrc --ignore=notebook $(git ls-files '*.py')
 
   test:
