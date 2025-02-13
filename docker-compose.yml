@@ -1,7 +1,7 @@
 x-airflow-common: &airflow-common
   build:
-    context: .  # Keep context at the root
-    dockerfile: backend/docker/airflow/Dockerfile # Updated path
+    context: .
+    dockerfile: backend/docker/airflow/Dockerfile
   env_file:
     - .env
   environment:
@@ -18,19 +18,19 @@ x-airflow-common: &airflow-common
     - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
     - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
     - DVC_REMOTE_URL=${DVC_REMOTE_URL}
-    - AWS_ALLOW_HTTP=true  # Add this if using non-SSL endpoint
+    - AWS_ALLOW_HTTP=true
     - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
     - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
     - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
-    - GIT_REPO_URL=${GIT_REPO_URL}  # Add this
-    - GITHUB_TOKEN=${GITHUB_TOKEN}  # Add this instead of mounting SSH keys
+    - GIT_REPO_URL=${GIT_REPO_URL}
+    - GITHUB_TOKEN=${GITHUB_TOKEN}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - airflow-repo:/opt/airflow/repo
     - ~/.aws:/home/airflow/.aws:ro
-    - inference-models:/app/models  # Add this line
+    - inference-models:/app/models
     - inference-models:/opt/airflow/inference/models  # Add shared volume with inference
     - /var/run/docker.sock:/var/run/docker.sock  # Mount the Docker socket
   depends_on:
@@ -41,7 +41,7 @@ x-airflow-common: &airflow-common
 services:
   postgres:
     image: postgres:13
-    container_name: postgres  # Renamed container
+    container_name: postgres
     environment:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
@@ -54,10 +54,10 @@ services:
     volumes:
       - postgres-db-volume:/var/lib/postgresql/data
 
-  # New service to init Airflow DB and create admin
+  # service to init Airflow DB and create admin
   airflow-init:
     <<: *airflow-common
-    container_name: airflow-init  # Renamed container
+    container_name: airflow-init
     command: >
       bash -c '
         airflow db init && airflow users create --username ${AIRFLOW_ADMIN_USER:-admin} --password ${AIRFLOW_ADMIN_PASSWORD:-admin} --firstname Anonymous --lastname Admin --role Admin --email ${AIRFLOW_ADMIN_EMAIL:-admin@example.com}
@@ -104,7 +104,7 @@ services:
 
   webserver:
     <<: *airflow-common
-    container_name: webserver  # Renamed container
+    container_name: webserver
     user: "50000:0" # Ensure airflow user has correct permissions
     command: >
         bash -c "
@@ -130,8 +130,8 @@ services:
 
   scheduler:
     <<: *airflow-common
-    container_name: scheduler  # Renamed container
-    # user: "50000:0" # Ensure airflow user has correct permissions
+    container_name: scheduler
+    user: "50000:0" # Ensure airflow user has correct permissions
     command: airflow scheduler
     depends_on:
       airflow-init:
@@ -140,10 +140,10 @@ services:
         condition: service_started
 
   mlflow:
-    container_name: mlflow  # Renamed container
+    container_name: mlflow
     build:
-      context: . # Keep context at the root
-      dockerfile: backend/docker/mlflow/Dockerfile # Updated path
+      context: .
+      dockerfile: backend/docker/mlflow/Dockerfile
     ports:
       - "127.0.0.1:5000:5000"
     environment:
@@ -167,7 +167,7 @@ services:
 
   minio:
     image: minio/minio
-    container_name: minio-minio  # Renamed container
+    container_name: minio-minio
     ports:
       - "9000:9000"
       - "9001:9001"
@@ -185,7 +185,7 @@ services:
 
   mc:  # Add MinIO client to create initial bucket
     image: minio/mc
-    container_name: minio-mc  # Renamed container
+    container_name: minio-mc
     depends_on:
       minio:
         condition: service_healthy
@@ -198,10 +198,10 @@ services:
       "
 
   inference:
-    container_name: streamlit  # Renamed container
+    container_name: streamlit
     build:
-      context: . # Keep context at the root
-      dockerfile: backend/docker/inference/Dockerfile # Updated path
+      context: .
+      dockerfile: backend/docker/inference/Dockerfile
     ports:
       - "8501:8501"
     environment:
@@ -227,10 +227,10 @@ services:
         condition: service_healthy
 
   fastapi:
-    container_name: fastapi  # Renamed container
+    container_name: fastapi
     build:
-      context: . # Keep context at the root
-      dockerfile: backend/docker/fastapi/Dockerfile # Updated path
+      context: .
+      dockerfile: backend/docker/fastapi/Dockerfile
     ports:
       - "8000:8000"
     environment:
@@ -242,13 +242,13 @@ services:
       mlflow:
         condition: service_healthy
     volumes:
-      - ./backend/src:/app/src  # Updated path
-      - ./backend/configs:/app/configs  # Updated path
+      - ./backend/src:/app/src
+      - ./backend/configs:/app/configs
     restart: always
 
 volumes:
   postgres-db-volume:
   airflow-repo:
   minio-data:
-  inference-models:  # Add this line
+  inference-models:
   inference-data:
