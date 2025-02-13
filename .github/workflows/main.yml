@@ -74,6 +74,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build and push Docker images
+        working-directory: .
         run: |
           docker-compose build
           docker tag postgres ghcr.io/${{ github.repository }}/postgres:${{ github.sha }}
