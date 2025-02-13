@@ -39,7 +39,10 @@ repos:
     hooks:
       - id: reorder-python-imports
         exclude: ^(.*template.*|notebook/.*)$
-        args: [--py37-plus]
+        args:
+          - --py37-plus
+          - --application-directories=.:src:backend
+          - --add-import=from __future__ import annotations
         files: \.py$
 
   - repo: https://github.com/asottile/pyupgrade
