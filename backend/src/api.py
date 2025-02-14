@@ -1,5 +1,8 @@
-# from typing import Dict
+import os
+
+from dotenv import load_dotenv
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from src.utils.utils import load_config
@@ -13,6 +16,8 @@ from src.utils.utils import setup_logging
 
 logger = setup_logging("fastapi")
 config = load_config()
+
+load_dotenv()  # Load environment variables
 
 # Load models (replace with your actual model loading logic)
 # def load_models():
@@ -32,6 +37,18 @@ config = load_config()
 
 app = FastAPI()
 
+# Configure CORS
+origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
+logger.info("Allowed origins: %s", origins)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 
 class InferenceInput(BaseModel):
     title: str
@@ -46,7 +63,7 @@ class InferenceInput(BaseModel):
 @app.get("/healthcheck")
 async def healthcheck():
     logger.info("Health check requested")
-    return {"status": "ok"}
+    return {"status": "ok!"}
 
 
 # @app.post("/predict")
@@ -83,4 +100,4 @@ async def healthcheck():
 @app.post("/predict")
 async def predict(input_data: InferenceInput):
     logger.info("healthcheck: %s", "ok")
-    return {"predicted_salary": "???"}
+    return {"predicted_salary": "46 900 SEK/mo"}
