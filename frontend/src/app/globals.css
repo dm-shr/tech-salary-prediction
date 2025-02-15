@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #f0f4f8; /* Light, modern background */
+}
+
+.btn-primary {
+  @apply font-bold rounded-md border-2 border-gray-50 focus:outline-none focus:ring-0 text-white;
+  /* @apply font-bold rounded-md border-2 focus:outline-none focus:ring-0 text-white; */
+  background: linear-gradient(to bottom right, #6366f1, #b11f83);
+  transition: background-color 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(to bottom right, #4f46e5, #9e9da4);
+}
+
+.btn-primary:active {
+  background: linear-gradient(to bottom right, #4338ca, #d9d9dc);
+}
+
+.btn-outline {
+  @apply bg-transparent hover:bg-indigo-500 text-indigo-700 font-semibold hover:text-white py-2 px-4 border border-indigo-500 hover:border-transparent rounded;
+  /* @apply bg-white hover:bg-indigo-500 text-indigo-700 font-semibold hover:text-white py-2 px-4 border border-indigo-500 hover:border-transparent rounded; */
+}
