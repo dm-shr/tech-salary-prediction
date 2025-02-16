@@ -9,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea"
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
-import { fetchFromAPI } from "@/lib/api"
-import { rateLimiter } from "@/lib/rateLimit"
+import { fetchFromAPI } from "@/utils/api"
+import { rateLimiter } from "@/utils/rateLimit"
 
 export default function SalaryPredictorForm() {
   const [title, setTitle] = useState("Machine Learning Engineer")
