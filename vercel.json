@@ -2,11 +2,15 @@
   "version": 2,
   "builds": [
     {
-      "src": "frontend/next.config.js",
+      "src": "frontend/package.json",
       "use": "@vercel/next"
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/frontend/index.html" }
-  ]
+    {
+      "source": "/(.*)",
+      "destination": "/frontend/$1"
+    }
+  ],
+  "buildCommand": "cd frontend && npm install && npm run build"
 }
