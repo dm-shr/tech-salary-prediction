@@ -95,7 +95,7 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
   return (
     <div className="max-w-2xl mx-auto">
       <div className="mt-2 pt-2 border-t border-gray-200 text-center mb-4"> {/* Added mb-4 */}
-        <p className="text-sm text-gray-600">Interested? Let's stay in touch!</p>
+        <p className="text-sm text-gray-600">Interested? Let&apos;s stay in touch!</p>
         <div className="mt-2 flex justify-center space-x-4">
           <a
             href="https://github.com/dm-shr"
