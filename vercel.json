@@ -7,7 +7,6 @@
     }
   ],
   "rewrites": [
-    { "source": "/(.*)", "destination": "/frontend/$1" }
-  ],
-  "publicDirectory": "frontend/public"
+    { "source": "/(.*)", "destination": "/frontend/index.html" }
+  ]
 }
