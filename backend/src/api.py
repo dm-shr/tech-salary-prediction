@@ -70,16 +70,20 @@ def predict_salary(
 
         # Get transformer prediction and blend
         transformer_features = input_data["transformer_features"]
-        transformer_pred = transformer_predict(
-            transformer_model,
-            transformer_features["description_no_numbers"],
-            transformer_features["title_company_location_skills_source"],
-        )
+        if transformer_features is not None:
+            transformer_pred = transformer_predict(
+                transformer_model,
+                transformer_features["description_no_numbers"],
+                transformer_features["title_company_location_skills_source"],
+            )
 
-        # Blend predictions
-        blended_pred = catboost_weight * catboost_pred + transformer_weight * transformer_pred
-        logger.info("Using blended prediction")
-        return blended_pred
+            # Blend predictions
+            blended_pred = catboost_weight * catboost_pred + transformer_weight * transformer_pred
+            logger.info("Using blended prediction")
+            return blended_pred
+        else:
+            logger.info("Transformer features are None, using CatBoost prediction only")
+            return catboost_pred
 
     except Exception as e:
         logger.error(f"Prediction error: {str(e)}")
@@ -153,6 +157,9 @@ async def predict(input_data: InferenceInput):
         logger.info(f"Predicted salary: {final_salary:,.2f}")
         return {"predicted_salary": final_salary}
 
+    except ValueError as ve:
+        logger.error(f"Validation error: {ve}")
+        raise HTTPException(status_code=422, detail=str(ve))
     except Exception as e:
         logger.error(f"Error during prediction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
