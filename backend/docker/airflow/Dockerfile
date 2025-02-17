@@ -20,7 +20,7 @@ RUN mkdir -p /opt/airflow/repo/data /opt/airflow/repo/models && \
     chmod g+s /opt/airflow/repo/.dvc/tmp
 
 # Install base requirements first for better caching
-COPY backend/requirements.base_debug.txt backend/requirements.airflow.txt /opt/airflow/
+COPY backend/requirements.base.txt backend/requirements.airflow.txt /opt/airflow/
 
 USER airflow
 
@@ -36,8 +36,7 @@ RUN mkdir -p ${HOME}/.config/git && \
 # Install DVC and other dependencies
 RUN pip install --upgrade pip && \
     pip install 'dvc[s3]' && \
-    # pip install -r /opt/airflow/requirements.base.txt && \
-    pip install -r /opt/airflow/requirements.base_debug.txt && \
+    pip install -r /opt/airflow/requirements.base.txt && \
     pip install -r /opt/airflow/requirements.airflow.txt && \
     dvc --version
 
