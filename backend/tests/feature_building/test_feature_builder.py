@@ -13,6 +13,11 @@ from src.feature_building.main import FeatureBuilder
 def mock_config():
     return {
         "is_test": True,
+        "models": {
+            "transformer": {
+                "enabled": True,
+            },
+        },
         "features": {
             "preprocessed_data_base": "dummy_path",
             "output_base": "dummy_path",
@@ -83,6 +88,51 @@ def feature_builder(logger, mock_config, sample_data):  # Add sample_data as dep
         builder = FeatureBuilder(logger, is_inference=True)  # Always use inference mode for tests
         builder.data = sample_data  # Set data directly
         return builder
+
+
+@pytest.fixture
+def mock_config_transformer_disabled():
+    config = {
+        # Copy of mock_config with transformer disabled
+        "is_test": True,
+        "models": {
+            "transformer": {
+                "enabled": False,
+            },
+        },
+        "features": {
+            "preprocessed_data_base": "dummy_path",
+            "output_base": "dummy_path",
+            "target_base": "dummy_path",
+            "target_name": "log_salary_from",
+            "test_size": 1.0,
+            "features": {
+                "catboost": {
+                    "text": ["title", "location", "company", "description_no_numbers_with_skills"],
+                    "categorical": ["source"],
+                    "numeric": ["experience_from", "experience_to_adjusted_10", "description_size"],
+                },
+                "transformer": {
+                    "text": ["description_no_numbers", "title_company_location_skills_source"]
+                },
+                "bi_gru_cnn": {
+                    "text": ["description_no_numbers", "title_company_location_skills_source"]
+                },
+            },
+            "transformer": {
+                "features_base": "dummy_path",
+                "tokenizer": "intfloat/multilingual-e5-small",
+                "tokenizer_test": "sergeyzh/rubert-tiny-turbo",
+                "add_query_prefix": True,
+                "feature_processing": [
+                    {"name": "description_no_numbers", "max_len": 512},
+                    {"name": "title_company_location_skills_source", "max_len": 256},
+                ],
+            },
+            "catboost": {"features_base": "dummy_path"},
+        },
+    }
+    return config
 
 
 def test_data_property_setter(feature_builder):
@@ -184,3 +234,24 @@ def test_text_concatenation(feature_builder, sample_data):
     assert "Moscow" in result
     assert "Python, SQL" in result
     assert "hh" in result
+
+
+def test_disabled_transformer(logger, mock_config_transformer_disabled, sample_data):
+    with patch(
+        "src.feature_building.main.load_config", return_value=mock_config_transformer_disabled
+    ):
+        builder = FeatureBuilder(logger, is_inference=True)
+        builder.data = sample_data
+
+        results = builder.build()
+
+        # Check that transformer features are None when disabled
+        assert results["transformer_features"] is None
+
+        # Check that catboost features are still present and valid
+        assert "catboost_features" in results
+        assert isinstance(results["catboost_features"], pd.DataFrame)
+        assert not results["catboost_features"].empty
+
+        # Verify that text features don't have query prefix
+        assert not any(sample_data["description_no_numbers"].str.contains("query:"))
