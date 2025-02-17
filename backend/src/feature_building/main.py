@@ -1,15 +1,35 @@
 import logging
+import os
 import re
 from typing import Literal
 from typing import Optional
 from typing import Tuple
 
 import pandas as pd
+from dotenv import load_dotenv
 
 from src.preprocessing.main import JobDataPreProcessor
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
+
+try:
+    from google import genai
+    from pydantic import BaseModel
+
+    class TranslationResult(BaseModel):
+        company: str
+        description: str
+        location: str
+
+    translation_enabled = True
+    print("google-generativeai is installed. Translation will be enabled.")
+except ImportError:
+    print("google-generativeai is not installed. Translation will be disabled.")
+    translation_enabled = False
+
+
+load_dotenv()
 
 
 class FeatureBuilder:
@@ -105,7 +125,60 @@ class FeatureBuilder:
             self.logger.error(f"Failed to initialize FeatureBuilder: {str(e)}")
             raise
 
-    def prepare_set_inference_data(
+    async def _translate_with_gemini(
+        self, company: str, description: str, location: str
+    ) -> "TranslationResult":
+        """Translates company, description, and location using Google Gemini API."""
+        if not translation_enabled:
+            self.logger.warning("Translation is disabled.")
+            return TranslationResult(company=company, description=description, location=location)
+
+        try:
+            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+            prompt = f"""
+            You are an expert in localizing job market information for Russia.
+            Given the following job posting details, your task is to:
+            1.  Convert the company name to a well-known Russian company \
+(e.g., Yandex, Avito, Sber, Mail, VK, EPAM, X5 Retail Group). Be creative!
+            2.  Translate the job description into Russian.
+            3.  Convert the location to a relevant location within Russia.
+
+            Here are the details:
+            - Company: {company}
+            - Description: {description}
+            - Location: {location}
+
+            Provide the localized information in the following JSON format:
+            {{
+                "company": "Russian Company Name",
+                "description": "Russian Translation of the Job Description",
+                "location": "Location in Russia"
+            }}
+            """
+
+            self.logger.info(f"Translation prompt: {prompt}")
+
+            response = await client.aio.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=prompt,
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": TranslationResult,
+                },
+            )
+
+            self.logger.info(f"Translation response: {response.text}")
+
+            translation_result: TranslationResult = response.parsed
+
+            return translation_result
+
+        except Exception as e:
+            self.logger.error(f"Translation failed: {str(e)}")
+            return TranslationResult(company=company, description=description, location=location)
+
+    async def prepare_set_inference_data(
         self,
         title: str,
         company: str,
@@ -116,8 +189,15 @@ class FeatureBuilder:
         experience_to: int,
         source: Literal["headhunter", "getmatch"] = "headhunter",
     ) -> pd.DataFrame:
-        """Prepare input data for inference in the format expected by FeatureBuilder to then build features.
-        Set the data attribute of the FeatureBuilder instance to the input data."""
+        """Prepare input data for inference, translate if needed, and set the data attribute."""
+        self.logger.info("Preparing inference data...")
+        if self.is_inference and translation_enabled:
+            self.logger.info("Translating data with Gemini API...")
+            translation = await self._translate_with_gemini(company, description, location)
+            company = translation.company
+            description = translation.description
+            location = translation.location
+
         input_dict = {
             "title": [title],
             "company": [company],
