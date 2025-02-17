@@ -129,171 +129,171 @@ with DAG(
         },
     )
 
-    # Run scraping with DVC
-    scrape_data = BashOperator(
-        task_id="scrape_data",
-        bash_command="""
-            # set -e
-            # export HOME=/home/airflow
-            # export PATH="/home/airflow/.local/bin:$PATH"
-            cd ${REPO_PATH}
-            cd backend
-            python -m src.scraping.main
-        """,
-        cwd=REPO_PATH,
-        env={
-            "WEEK": '{{ execution_date.strftime("%V") }}',
-            "YEAR": '{{ execution_date.strftime("%Y") }}',
-        },
-    )
+    # # Run scraping with DVC
+    # scrape_data = BashOperator(
+    #     task_id="scrape_data",
+    #     bash_command="""
+    #         # set -e
+    #         # export HOME=/home/airflow
+    #         # export PATH="/home/airflow/.local/bin:$PATH"
+    #         cd ${REPO_PATH}
+    #         cd backend
+    #         python -m src.scraping.main
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "WEEK": '{{ execution_date.strftime("%V") }}',
+    #         "YEAR": '{{ execution_date.strftime("%Y") }}',
+    #     },
+    # )
 
-    # Preprocess with DVC tracking
-    preprocess_data = BashOperator(
-        task_id="preprocess_data",
-        bash_command="""
-            # Run preprocessing and capture output path
-            cd ${REPO_PATH}
-            cd backend
-            OUTPUT=$(python -m src.preprocessing.main)
-            CSV_PATH=$(echo "$OUTPUT" | grep "MERGED_CSV_PATH=" | cut -d'=' -f2)
+    # # Preprocess with DVC tracking
+    # preprocess_data = BashOperator(
+    #     task_id="preprocess_data",
+    #     bash_command="""
+    #         # Run preprocessing and capture output path
+    #         cd ${REPO_PATH}
+    #         cd backend
+    #         OUTPUT=$(python -m src.preprocessing.main)
+    #         CSV_PATH=$(echo "$OUTPUT" | grep "MERGED_CSV_PATH=" | cut -d'=' -f2)
 
-            # Save path for next task
-            echo "CSV_PATH=${CSV_PATH}" > /tmp/merged_csv_path
+    #         # Save path for next task
+    #         echo "CSV_PATH=${CSV_PATH}" > /tmp/merged_csv_path
 
-            echo "Generated CSV file: ${CSV_PATH}"
-        """,
-        cwd=REPO_PATH,
-    )
+    #         echo "Generated CSV file: ${CSV_PATH}"
+    #     """,
+    #     cwd=REPO_PATH,
+    # )
 
-    dvc_add_merged = BashOperator(
-        task_id="dvc_add_merged",
-        bash_command="""
-            set -e
-            export HOME=/home/airflow
-            export PATH="/home/airflow/.local/bin:$PATH"
-            cd ${REPO_PATH}
-            cd backend
+    # dvc_add_merged = BashOperator(
+    #     task_id="dvc_add_merged",
+    #     bash_command="""
+    #         set -e
+    #         export HOME=/home/airflow
+    #         export PATH="/home/airflow/.local/bin:$PATH"
+    #         cd ${REPO_PATH}
+    #         cd backend
 
-            # Get CSV path and ensure it's relative to repo root
-            source /tmp/merged_csv_path
-            echo "Working with file: ${CSV_PATH}"
+    #         # Get CSV path and ensure it's relative to repo root
+    #         source /tmp/merged_csv_path
+    #         echo "Working with file: ${CSV_PATH}"
 
-            # Configure git
-            git config user.email "${GIT_EMAIL}" || true
-            git config user.name "${GIT_NAME}" || true
-            git config --global core.hooksPath /dev/null
+    #         # Configure git
+    #         git config user.email "${GIT_EMAIL}" || true
+    #         git config user.name "${GIT_NAME}" || true
+    #         git config --global core.hooksPath /dev/null
 
-            echo "Adding file to DVC..."
-            python -m dvc add "${CSV_PATH}" -v
+    #         echo "Adding file to DVC..."
+    #         python -m dvc add "${CSV_PATH}" -v
 
-            echo "DVC status after add:"
-            python -m dvc status
-        """,
-        cwd=REPO_PATH,
-        env={
-            "REPO_PATH": REPO_PATH,
-            "GIT_EMAIL": os.getenv("GIT_EMAIL"),
-            "GIT_NAME": os.getenv("GIT_NAME"),
-            "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
-            "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
-            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
-            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "AWS_ALLOW_HTTP": "true",
-            "DVC_CACHE_UMASK": "002",
-            "PATH": f"/home/airflow/.local/bin:{os.environ.get('PATH', '')}",
-        },
-    )
+    #         echo "DVC status after add:"
+    #         python -m dvc status
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "REPO_PATH": REPO_PATH,
+    #         "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+    #         "GIT_NAME": os.getenv("GIT_NAME"),
+    #         "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+    #         "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "AWS_ALLOW_HTTP": "true",
+    #         "DVC_CACHE_UMASK": "002",
+    #         "PATH": f"/home/airflow/.local/bin:{os.environ.get('PATH', '')}",
+    #     },
+    # )
 
-    dvc_push_merged = BashOperator(
-        task_id="dvc_push_merged",
-        bash_command="""
-            set -e
-            export HOME=/home/airflow
-            export PATH="/home/airflow/.local/bin:$PATH"
-            cd ${REPO_PATH}
-            cd backend
+    # dvc_push_merged = BashOperator(
+    #     task_id="dvc_push_merged",
+    #     bash_command="""
+    #         set -e
+    #         export HOME=/home/airflow
+    #         export PATH="/home/airflow/.local/bin:$PATH"
+    #         cd ${REPO_PATH}
+    #         cd backend
 
-            # Get CSV path from previous task
-            source /tmp/merged_csv_path
-            echo "Processing file: ${CSV_PATH}"
+    #         # Get CSV path from previous task
+    #         source /tmp/merged_csv_path
+    #         echo "Processing file: ${CSV_PATH}"
 
-            # Configure git
-            git config user.email "${GIT_EMAIL}" || true
-            git config user.name "${GIT_NAME}" || true
-            git config --global core.hooksPath /dev/null
+    #         # Configure git
+    #         git config user.email "${GIT_EMAIL}" || true
+    #         git config user.name "${GIT_NAME}" || true
+    #         git config --global core.hooksPath /dev/null
 
-            # Push to DVC first
-            python -m dvc push -v
+    #         # Push to DVC first
+    #         python -m dvc push -v
 
-            # Git operations
-            if [ -f "${CSV_PATH}.dvc" ]; then
-                TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
+    #         # Git operations
+    #         if [ -f "${CSV_PATH}.dvc" ]; then
+    #             TAG_NAME=$(basename ${CSV_PATH} .csv)_$(date +%H%M%S)
 
-                # Add only the specific DVC file and create tag
-                git add -f "${CSV_PATH}.dvc"
+    #             # Add only the specific DVC file and create tag
+    #             git add -f "${CSV_PATH}.dvc"
 
-                if ! git diff --staged --quiet; then
-                    # Create commit (needed for tag) but don't push it
-                    git commit -m "Add ${TAG_NAME}"
+    #             if ! git diff --staged --quiet; then
+    #                 # Create commit (needed for tag) but don't push it
+    #                 git commit -m "Add ${TAG_NAME}"
 
-                    # Create and push tag only
-                    git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
-                    git push origin "${TAG_NAME}"
+    #                 # Create and push tag only
+    #                 git tag -a "${TAG_NAME}" -m "Data version: ${TAG_NAME}"
+    #                 git push origin "${TAG_NAME}"
 
-                    echo "Successfully created and pushed tag ${TAG_NAME}"
+    #                 echo "Successfully created and pushed tag ${TAG_NAME}"
 
-                    # Reset the commit to keep the branch clean
-                    git reset HEAD~1 --hard
-                fi
-            else
-                echo "Error: DVC file ${CSV_PATH}.dvc not found"
-                exit 1
-            fi
-        """,
-        cwd=REPO_PATH,
-        env={
-            "REPO_PATH": REPO_PATH,
-            "GIT_BRANCH": os.getenv("GIT_BRANCH"),
-            "GIT_EMAIL": os.getenv("GIT_EMAIL"),
-            "GIT_NAME": os.getenv("GIT_NAME"),
-            "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
-            "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
-            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
-            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
-        },
-    )
+    #                 # Reset the commit to keep the branch clean
+    #                 git reset HEAD~1 --hard
+    #             fi
+    #         else
+    #             echo "Error: DVC file ${CSV_PATH}.dvc not found"
+    #             exit 1
+    #         fi
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         "REPO_PATH": REPO_PATH,
+    #         "GIT_BRANCH": os.getenv("GIT_BRANCH"),
+    #         "GIT_EMAIL": os.getenv("GIT_EMAIL"),
+    #         "GIT_NAME": os.getenv("GIT_NAME"),
+    #         "GITHUB_TOKEN": os.getenv("GITHUB_TOKEN"),
+    #         "DVC_REMOTE_URL": os.getenv("DVC_REMOTE_URL"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
+    #     },
+    # )
 
-    # Build features
-    build_features = BashOperator(
-        task_id="build_features",
-        bash_command="""
-            cd ${REPO_PATH}
-            cd backend
-            python -m src.feature_building.main
-        """,
-        cwd=REPO_PATH,
-    )
+    # # Build features
+    # build_features = BashOperator(
+    #     task_id="build_features",
+    #     bash_command="""
+    #         cd ${REPO_PATH}
+    #         cd backend
+    #         python -m src.feature_building.main
+    #     """,
+    #     cwd=REPO_PATH,
+    # )
 
-    # Train models
-    train_models = BashOperator(
-        task_id="train_models",
-        bash_command="""
-            cd ${REPO_PATH}
-            cd backend
-            python -m src.training.main
-        """,
-        cwd=REPO_PATH,
-        env={
-            # Add MLflow environment variables
-            "MLFLOW_TRACKING_URI": os.getenv("MLFLOW_TRACKING_URI"),
-            "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
-            "MLFLOW_BUCKET_NAME": os.getenv("MLFLOW_BUCKET_NAME"),
-            "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
-            "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
-            "MLFLOW_S3_IGNORE_TLS": "true",
-        },
-    )
+    # # Train models
+    # train_models = BashOperator(
+    #     task_id="train_models",
+    #     bash_command="""
+    #         cd ${REPO_PATH}
+    #         cd backend
+    #         python -m src.training.main
+    #     """,
+    #     cwd=REPO_PATH,
+    #     env={
+    #         # Add MLflow environment variables
+    #         "MLFLOW_TRACKING_URI": os.getenv("MLFLOW_TRACKING_URI"),
+    #         "MLFLOW_S3_ENDPOINT_URL": os.getenv("MLFLOW_S3_ENDPOINT_URL"),
+    #         "MLFLOW_BUCKET_NAME": os.getenv("MLFLOW_BUCKET_NAME"),
+    #         "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
+    #         "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
+    #         "MLFLOW_S3_IGNORE_TLS": "true",
+    #     },
+    # )
 
     # After successful run, trigger model update in inference service
     notify_streamlit = PythonOperator(
@@ -334,12 +334,12 @@ with DAG(
     (
         debug_config
         >> init_git_dvc
-        >> scrape_data
-        >> preprocess_data
-        >> dvc_add_merged
-        >> dvc_push_merged
-        >> build_features
-        >> train_models
+        # >> scrape_data
+        # >> preprocess_data
+        # >> dvc_add_merged
+        # >> dvc_push_merged
+        # >> build_features
+        # >> train_models
         >> notify_streamlit
         >> notify_fastapi
     )
