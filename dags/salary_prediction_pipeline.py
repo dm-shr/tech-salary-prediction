@@ -320,17 +320,17 @@ with DAG(
         except docker.errors.APIError as e:
             print(f"Error restarting container '{container_name}': {e}")
 
-    # # Cleanup after successful DVC push
-    # cleanup_files = BashOperator(
-    #     task_id='cleanup_files',
-    #     bash_command='''
-    #         find . -type f \( -name "*.csv" -o -name "*.pt" -o -name "*.pkl" -o -name "*.cbm" -o -name "*.npy" -o -name "*.dvc" \) -delete
-    #         rm -rf data/preprocessed/merged/*
-    #         rm -rf .dvc/cache
-    #         rm -rf .dvc/tmp
-    #     ''',
-    #     cwd=REPO_PATH
-    # )
+    # Cleanup after successful inference trigger
+    cleanup_files = BashOperator(
+        task_id="cleanup_files",
+        bash_command=r"""
+            find . -type f \( -name "*.csv" -o -name "*.pt" -o -name "*.pkl" -o -name "*.cbm" -o -name "*.npy" \) -delete
+            rm -rf backend/data/preprocessed/merged/*
+            rm -rf .dvc/cache
+            rm -rf .dvc/tmp
+        """,
+        cwd=REPO_PATH,
+    )
     (
         debug_config
         >> init_git_dvc
@@ -342,4 +342,5 @@ with DAG(
         >> train_models
         >> notify_streamlit
         >> notify_fastapi
+        >> cleanup_files
     )
