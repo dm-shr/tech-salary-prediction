@@ -114,13 +114,12 @@ origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 logger.info("Allowed origins: %s", origins)
 
 # API Key Authentication
-API_KEYS = [
-    key.strip() for key in os.getenv("API_KEYS", "").split(",")
-]  # Load valid API keys from env
+API_KEYS = os.getenv("API_KEYS", "").split(",")
 
 
 async def verify_api_key(x_api_key: str = Header(...)):
-    if x_api_key not in API_KEYS:
+    valid_keys = [key.strip() for key in API_KEYS if key.strip()]
+    if x_api_key not in valid_keys:
         raise HTTPException(status_code=401, detail="Invalid API Key")
     return x_api_key
 
