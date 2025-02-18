@@ -9,7 +9,6 @@ import { Textarea } from "@/components/ui/textarea"
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
-import { fetchFromAPI } from "@/utils/api"
 import { rateLimiter } from "@/utils/rateLimit"
 
 const CURRENCY_CONVERSION = 0.43; // Define the currency conversion rate
@@ -70,8 +69,11 @@ export default function SalaryPredictorForm() {
     setIsLoading(true)
 
     try {
-      const data = await fetchFromAPI("/predict", {
+      const response = await fetch("/api/predict", { // Call the Vercel Function
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           title,
           company,
@@ -83,6 +85,20 @@ export default function SalaryPredictorForm() {
         }),
       })
 
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          setError(errorData.error || "Failed to fetch prediction");
+        } catch (parseError) {
+          // If JSON parsing fails, use the raw text
+          const errorText = await response.text();
+          setError(errorText || "Failed to fetch prediction");
+          console.error("Error parsing JSON:", parseError); // Log the parse error
+        }
+        return;
+      }
+
+      const data = await response.json();
       const predictedSalaryValue = parseFloat(data.predicted_salary) * CURRENCY_CONVERSION;
       const roundedSalary = Math.round(predictedSalaryValue / 100) * 100; // Round to nearest hundred
       const formattedSalary = roundedSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // Add space for thousands separator
