@@ -12,6 +12,7 @@ The stack overview:
 - **MLflow** and **DVC** for tracking and data versioning;
 - **AWS S3** for storage;
 - **Next.js**, **TypeScript**, and **Vercel** for the frontend.
+- **Streamlit** is also available as an alternative frontend.
 
 The project demo is now live! Check it out at this [**link.**](https://tech-salary-prediction.vercel.app/)
 
@@ -26,6 +27,8 @@ dags/                 # Airflow DAGs for pipeline automation
 backend/              # Python backend service
 ├── configs/          # Configuration files
 ├── src/              # Source code
+│   ├── fastapi_app.py  # FastAPI application
+│   ├── streamlit_app.py # Streamlit application
 │   ├── feature_building   # Feature engineering
 │   ├── monitoring         # Monitoring tools
 │   ├── preprocessing      # Data preprocessing scripts
