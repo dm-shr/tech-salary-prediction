@@ -36,10 +36,16 @@ def get_models():
     try:
         models = load_models()
         if not models.get("catboost"):
+            logger.error(
+                "CatBoost model failed to load.  Please check the model path and S3 access."
+            )
             raise ValueError("CatBoost model failed to load")
 
         if config["models"]["transformer"]["enabled"]:
             if not models.get("transformer"):
+                logger.error(
+                    "Transformer model failed to load. Please check the model path and S3 access."
+                )
                 raise ValueError("Transformer enabled but failed to load")
             logger.info("Both models loaded successfully")
         else:
