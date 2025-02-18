@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,13 +12,15 @@ import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { fetchFromAPI } from "@/utils/api"
 import { rateLimiter } from "@/utils/rateLimit"
 
+const CURRENCY_CONVERSION = 0.43; // Define the currency conversion rate
+
 export default function SalaryPredictorForm() {
   const [title, setTitle] = useState("Machine Learning Engineer")
   const [company, setCompany] = useState("Spotify")
   const [location, setLocation] = useState("Stockholm")
-const [description, setDescription] = useState("We are seeking a Machine Learning Engineer to join our team. The ideal candidate will have experience in developing and deploying ML models, working with large datasets, and implementing end-to-end ML pipelines. Key responsibilities include model development, experimentation, and collaboration with cross-functional teams. Strong programming skills in Python and experience with deep learning frameworks required.")
+  const [description, setDescription] = useState("We are seeking a Machine Learning Engineer to join our team. The ideal candidate will have experience in developing and deploying ML models, working with large datasets, and implementing end-to-end ML pipelines. Key responsibilities include model development, experimentation, and collaboration with cross-functional teams. Strong programming skills in Python and experience with deep learning frameworks required.")
   const [skills, setSkills] = useState("Python, SQL, PyTorch")
-  const [experienceRange, setExperienceRange] = useState([0, 3]);
+  const [experienceRange, setExperienceRange] = useState([3, 6]);
   const [predictedSalary, setPredictedSalary] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -26,7 +28,6 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
   const titleExamples = ["DevOps", "Data Analyst"]
   const companyExamples = ["H&M", "Klarna", "King"]
   const locationExamples = ["Malmö", "Gothenburg"]
-//   const descriptionExamples = ["We are looking for a Data Scientist!", "Join our team as a Machine Learning Engineer", "Analyze data and provide insights"]
   const skillsExamples = ["React", "AWS", "Docker"]
 
   const handleSkillButtonClick = (skill: string) => {
@@ -82,7 +83,10 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
         }),
       })
 
-      setPredictedSalary(data.predicted_salary)
+      const predictedSalaryValue = parseFloat(data.predicted_salary) * CURRENCY_CONVERSION;
+      const roundedSalary = Math.round(predictedSalaryValue / 100) * 100; // Round to nearest hundred
+      const formattedSalary = roundedSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // Add space for thousands separator
+      setPredictedSalary(`${formattedSalary} SEK/month`); // Set the formatted salary
     } catch (error) {
       console.error("Error predicting salary:", error)
       setError(error instanceof Error ? error.message : "Failed to predict salary")
@@ -92,42 +96,48 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
     }
   }
 
+  useEffect(() => {
+    if (experienceRange[1] < experienceRange[0]) {
+      setExperienceRange([experienceRange[0], experienceRange[0]]);
+    }
+  }, [experienceRange]);
+
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mt-2 pt-2 border-t border-gray-200 text-center mb-4"> {/* Added mb-4 */}
+      <div className="mt-2 pt-2 border-t border-gray-200 text-center mb-4">
         <p className="text-sm text-gray-600">Interested? Let&apos;s stay in touch!</p>
         <div className="mt-2 flex justify-center space-x-4">
           <a
             href="https://github.com/dm-shr"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-900 hover:text-black flex items-center gap-2" // Changed from blue-500/600 to gray-900/black
+            className="text-gray-900 hover:text-black flex items-center gap-2"
           >
-            <FaGithub className="text-xl text-black" /> {/* Added text-black */}
-            <span>GitHub</span>
+            <FaGithub className="text-xl text-black" />
+            <span className="hidden md:inline">GitHub</span> {/* Hide text on small screens */}
           </a>
           <a
             href="https://www.linkedin.com/in/dshiriaev/"
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 hover:text-blue-800 flex items-center gap-2" // Changed from blue-500/600 to blue-600/800
+            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
           >
             <FaLinkedin className="text-xl" />
-            <span>LinkedIn</span>
+            <span className="hidden md:inline">LinkedIn</span> {/* Hide text on small screens */}
           </a>
         </div>
       </div>
 
-      <div className="border border-gray-300 rounded p-4 bg-gray-50"> {/* Changed from just 'border' to 'border border-gray-300' */}
+      <div className="border border-gray-300 rounded p-4 bg-gray-50">
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="mb-4">
             <Label htmlFor="title" className="mb-3 block">Job Title</Label>
-            <div className="flex">
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-3/5" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-2/5">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {titleExamples.map((example) => (
                   <Button type="button" variant="outline" size="sm" key={example} onClick={() => setTitle(example)}
-                  className="btn-outline">
+                    className="btn-outline">
                     {example}
                   </Button>
                 ))}
@@ -136,12 +146,12 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
           </div>
           <div className="mb-4">
             <Label htmlFor="company" className="mb-2 block">Company</Label>
-            <div className="flex">
-              <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} required className="w-3/5" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-2/5">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {companyExamples.map((example) => (
                   <Button type="button" variant="outline" size="sm" key={example} onClick={() => setCompany(example)}
-                  className="btn-outline">
+                    className="btn-outline">
                     {example}
                   </Button>
                 ))}
@@ -150,12 +160,12 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
           </div>
           <div className="mb-2">
             <Label htmlFor="location" className="mb-3 block">Location</Label>
-            <div className="flex">
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} required className="w-3/5" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-2/5">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {locationExamples.map((example) => (
                   <Button type="button" variant="outline" size="sm" key={example} onClick={() => setLocation(example)}
-                  className="btn-outline">
+                    className="btn-outline">
                     {example}
                   </Button>
                 ))}
@@ -164,17 +174,17 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
           </div>
           <div className="mb-4">
             <Label htmlFor="skills" className="mb-3 block">Skills, comma-separated</Label>
-            <div className="flex">
-              <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} required className="w-3/5" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-2/5">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {skillsExamples.map((skill) => (
                   <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  key={skill}
-                  onClick={() => handleSkillButtonClick(skill)}
-                  className="btn-outline"
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    key={skill}
+                    onClick={() => handleSkillButtonClick(skill)}
+                    className="btn-outline"
                   >
                     {skill}
                   </Button>
@@ -182,9 +192,23 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
               </div>
             </div>
           </div>
+
           <div className="mb-4 flex flex-col">
             <Label htmlFor="experienceRange" className="mb-6 block">Experience Range, years</Label>
             <div className="w-4/5 mx-auto"> {/* Added container with width constraint */}
+              <style jsx global>{`
+                .rc-slider-rail {
+                  height: 12px !important; /* Adjust the height of the rail */
+                }
+                .rc-slider-handle {
+                  width: 24px !important; /* Adjust the width of the handle */
+                  height: 24px !important; /* Adjust the height of the handle */
+                  margin-top: -6px !important; /* Adjust the margin to center the handle */
+                }
+                .rc-slider-track {
+                  height: 12px !important; /* Adjust the height of the track */
+                }
+              `}</style>
               <Slider
                 min={0}
                 max={10}
@@ -199,20 +223,16 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
               </div>
             </div>
           </div>
+
           <div className="mb-4">
             <Label htmlFor="description" className="mb-4 block">Job Description</Label>
-            <div className="flex">
+            <div className="flex flex-col">
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} required className="w-full" />
-              {/* <div className="flex flex-wrap justify-center space-x-2 mt-1 w-2/5"> */}
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-2/7">
-                {/* {descriptionExamples.map((example) => (
-                <Button type="button" variant="outline" size="sm" key={example} onClick={() => setDescription(example)}>
-                  {example}
-                </Button>
-              ))} */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full">
               </div>
             </div>
           </div>
+
           <div className="flex flex-col items-center justify-center mt-6">
             <div className="w-full max-w-xs">
               <Button
@@ -223,16 +243,16 @@ const [description, setDescription] = useState("We are seeking a Machine Learnin
                 {isLoading ? "Predicting..." : "Predict Salary"}
               </Button>
             </div>
-            <div className="h-12 w-full flex items-center justify-center mt-6"> {/* Changed mt-8 to mt-6 */}
+            <div className="h-12 w-full flex items-center justify-center mt-6">
               {error ? (
                 <div className="px-4 py-3 rounded-lg shadow-md w-full max-w-sm bg-red-50 border border-red-200">
                   <p className="text-red-700 text-center">{error}</p>
                 </div>
               ) : predictedSalary && (
-                <div className="px-4 py-3 rounded-lg shadow-md w-full max-w-sm bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100"> {/* Changed p-4 to px-4 py-3 */}
-                  <p className="text-gray-800 text-lg text-center flex items-center justify-center gap-2"> {/* Removed font-semibold */}
+                <div className="px-4 py-3 rounded-lg shadow-md w-full max-w-sm bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-100">
+                  <p className="text-gray-800 text-lg text-center flex items-center justify-center gap-2">
                     Starting Salary:
-                    <span className="text-indigo-700 font-medium">{predictedSalary}</span> {/* Changed from default bold to font-medium */}
+                    <span className="text-indigo-700 font-medium">{predictedSalary}</span>
                   </p>
                 </div>
               )}

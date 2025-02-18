@@ -1,4 +1,4 @@
-is_test: true
+is_test: false
 
 # Data Collection
 scraping:
@@ -103,6 +103,7 @@ models:
     save_dir: "models/catboost"
     y_pred_base: "data/predictions/catboost/y_pred"
     y_true_base: "data/predictions/catboost/y_true"
+    use_latest_model_flag: true
 
   transformer:
     enabled: false
@@ -123,6 +124,7 @@ models:
     save_base: "models/transformer/transformer"
     y_pred_base: "data/predictions/transformer/y_pred"
     y_true_base: "data/predictions/transformer/y_true"
+    use_latest_model_flag: false
 
   blended:
     mlflow_run_name: "blended"

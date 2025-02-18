@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from datetime import timedelta
 
 from airflow import DAG
@@ -37,16 +36,6 @@ default_args = {
 REPO_PATH = os.getenv("REPO_PATH", "/opt/airflow/repo")  # Keep REPO_PATH at the root
 
 
-# Add filename generation function
-def generate_mock_filename():
-    current_date = datetime.now()
-    week_nr = current_date.strftime("%V")  # ISO week number
-    year = current_date.strftime("%Y")
-    # Use execution date for consistent naming across tasks
-    random_str = '{{ task_instance.execution_date.strftime("%Y%m%d%H%M%S") }}'
-    return f"mock_week_{week_nr}_{year}_{random_str}.csv"
-
-
 with DAG(
     "salary_prediction_pipeline",
     default_args=default_args,
@@ -56,9 +45,6 @@ with DAG(
     tags=["ml", "production", "dvc"],
 ) as dag:
 
-    # Generate filename for this DAG run
-    MOCK_FILENAME = generate_mock_filename()
-
     # Add debug task
     debug_config = PythonOperator(task_id="debug_config", python_callable=print_config, dag=dag)
 
@@ -66,6 +52,7 @@ with DAG(
     init_git_dvc = BashOperator(
         task_id="init_git_dvc",
         bash_command="""
+            echo "Initializing Git and DVC..."
             set -e
             export HOME=/home/airflow
             export PATH="/home/airflow/.local/bin:$PATH"
@@ -214,7 +201,6 @@ with DAG(
             "AWS_ALLOW_HTTP": "true",
             "DVC_CACHE_UMASK": "002",
             "PATH": f"/home/airflow/.local/bin:{os.environ.get('PATH', '')}",
-            "MOCK_FILENAME": MOCK_FILENAME,
         },
     )
 
@@ -275,7 +261,6 @@ with DAG(
             "AWS_ACCESS_KEY_ID": os.getenv("AWS_ACCESS_KEY_ID"),
             "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
             "AWS_DEFAULT_REGION": os.getenv("AWS_DEFAULT_REGION"),
-            "MOCK_FILENAME": MOCK_FILENAME,
         },
     )
 
@@ -311,9 +296,15 @@ with DAG(
     )
 
     # After successful run, trigger model update in inference service
-    notify_inference = PythonOperator(
-        task_id="notify_inference",
+    notify_streamlit = PythonOperator(
+        task_id="notify_streamlit",
         python_callable=lambda: restart_docker_container("streamlit"),
+        dag=dag,
+    )
+
+    notify_fastapi = PythonOperator(
+        task_id="notify_fastapi",
+        python_callable=lambda: restart_docker_container("fastapi"),
         dag=dag,
     )
 
@@ -329,21 +320,17 @@ with DAG(
         except docker.errors.APIError as e:
             print(f"Error restarting container '{container_name}': {e}")
 
-    # # Cleanup after successful DVC push
-    # cleanup_files = BashOperator(
-    #     task_id='cleanup_files',
-    #     bash_command='''
-    #         find . -type f \( -name "*.csv" -o -name "*.pt" -o -name "*.pkl" -o -name "*.cbm" -o -name "*.npy" -o -name "*.dvc" \) -delete
-    #         rm -rf data/preprocessed/merged/*
-    #         rm -rf .dvc/cache
-    #         rm -rf .dvc/tmp
-    #     ''',
-    #     cwd=REPO_PATH
-    # )
-    # Define task dependencies
-    # debug_config >> init_git_dvc >> scrape_data >> preprocess_data >> dvc_add_preprocessed >> \
-    # build_features >> train_models >> dvc_push >> notify_inference >> cleanup_files
-    # debug_config >> init_git_dvc >> dvc_add_mock >> dvc_push_mock
+    # Cleanup after successful inference trigger
+    cleanup_files = BashOperator(
+        task_id="cleanup_files",
+        bash_command=r"""
+            find . -type f \( -name "*.csv" -o -name "*.pt" -o -name "*.pkl" -o -name "*.cbm" -o -name "*.npy" \) -delete
+            rm -rf backend/data/preprocessed/merged/*
+            rm -rf .dvc/cache
+            rm -rf .dvc/tmp
+        """,
+        cwd=REPO_PATH,
+    )
     (
         debug_config
         >> init_git_dvc
@@ -353,7 +340,7 @@ with DAG(
         >> dvc_push_merged
         >> build_features
         >> train_models
-        >> notify_inference
+        >> notify_streamlit
+        >> notify_fastapi
+        >> cleanup_files
     )
-
-    # (debug_config >> init_git_dvc >> notify_inference)

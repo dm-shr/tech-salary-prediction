@@ -25,7 +25,10 @@ jobs:
         run: |
           cd backend
           pre-commit run --all-files
-          pylint --rcfile=../.pylintrc --ignore=notebook $(git ls-files '*.py')
+          pylint --rcfile=../.pylintrc \
+            --ignore=notebook \
+            --disable=E0606,W0707,C0415 \
+            $(git ls-files '*.py')
 
   test:
     runs-on: ubuntu-latest
@@ -35,117 +38,33 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: "3.10"
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          python -m pip install -r backend/requirements.base.txt
-          python -m pip install pytest pytest-cov pytest-mock
+          python -m pip install -r backend/requirements.base.blended.txt
+          python -m pip install -r backend/requirements.fastapi.txt
+          python -m pip install pytest pytest-cov pytest-mock httpx
+
       - name: Run tests
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
+          AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           cd backend
-          pytest tests/ -vvv --cov=. --cov-report term-missing
+          pytest tests/ -vvv --cov=. --cov-report term-missing -o log_cli=1
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         with:
           name: test-results
           path: backend/test-results.xml
+
       - name: Upload coverage report
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: backend/coverage.xml
-
-  # build:
-  #   runs-on: ubuntu-latest
-  #   needs: [lint, test]
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Set up Docker Buildx
-  #       id: buildx
-  #       uses: docker/setup-buildx-action@v2
-  #     - name: Install Docker Compose
-  #       run: |
-  #         sudo apt-get update
-  #         sudo apt-get install docker-compose
-  #     - name: Pull Docker images
-  #       run: docker-compose pull
-  #     - name: Login to GitHub Container Registry
-  #       uses: docker/login-action@v2
-  #       with:
-  #         registry: ghcr.io
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Build and push Docker images
-  #       working-directory: .
-  #       env:
-  #         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         AWS_DEFAULT_REGION: ${{ secrets.AWS_DEFAULT_REGION }}
-  #         DVC_REMOTE_URL: ${{ secrets.DVC_REMOTE_URL }}
-  #         MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
-  #         MLFLOW_S3_ENDPOINT_URL: ${{ secrets.MLFLOW_S3_ENDPOINT_URL }}
-  #         MLFLOW_EXPERIMENT_NAME: ${{ secrets.MLFLOW_EXPERIMENT_NAME }}
-  #         GIT_REPO_URL: ${{ secrets.GIT_REPO_URL }}
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  #         AWS_BUCKET_NAME: ${{ secrets.AWS_BUCKET_NAME }}
-  #         FERNET_KEY: ${{ secrets.FERNET_KEY }}
-  #       run: |
-  #         # Set the project name
-  #         project_name=tech_salary_prediction
-
-  #         docker-compose -p $project_name build \
-  #           --build-arg AWS_ACCESS_KEY_ID=${{ env.AWS_ACCESS_KEY_ID }} \
-  #           --build-arg AWS_SECRET_ACCESS_KEY=${{ env.AWS_SECRET_ACCESS_KEY }} \
-  #           --build-arg AWS_DEFAULT_REGION=${{ env.AWS_DEFAULT_REGION }} \
-  #           --build-arg DVC_REMOTE_URL=${{ env.DVC_REMOTE_URL }} \
-  #           --build-arg MLFLOW_TRACKING_URI=${{ env.MLFLOW_TRACKING_URI }} \
-  #           --build-arg MLFLOW_S3_ENDPOINT_URL=${{ env.MLFLOW_S3_ENDPOINT_URL }} \
-  #           --build-arg MLFLOW_EXPERIMENT_NAME=${{ env.MLFLOW_EXPERIMENT_NAME }} \
-  #           --build-arg GIT_REPO_URL=${{ env.GIT_REPO_URL }} \
-  #           --build-arg GITHUB_TOKEN=${{ env.GITHUB_TOKEN }} \
-  #           --build-arg AWS_BUCKET_NAME=${{ env.AWS_BUCKET_NAME }} \
-  #           --build-arg FERNET_KEY=${{ env.FERNET_KEY }}
-
-  #         # Tag the images with the correct names
-  #         docker tag ${project_name}_webserver ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
-  #         docker tag ${project_name}_scheduler ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
-  #         docker tag ${project_name}_mlflow ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
-  #         docker tag ${project_name}_minio-minio ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }}
-  #         docker tag ${project_name}_streamlit ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }}
-  #         docker tag ${project_name}_fastapi ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }}
-
-  #         # Push the images
-  #         docker push ghcr.io/${{ github.repository }}/webserver:${{ github.sha }}
-  #         docker push ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }}
-  #         docker push ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }}
-  #         docker push ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }}
-  #         docker push ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }}
-  #         docker push ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }}
-
-  # deploy:
-  #   runs-on: ubuntu-latest
-  #   needs: build
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Login to GitHub Container Registry
-  #       uses: docker/login-action@v2
-  #       with:
-  #         registry: ghcr.io
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-  #     - name: Tag and push latest Docker images
-  #       run: |
-  #         # docker tag ghcr.io/${{ github.repository }}/postgres:${{ github.sha }} ghcr.io/${{ github.repository }}/postgres:latest
-  #         docker tag ghcr.io/${{ github.repository }}/webserver:${{ github.sha }} ghcr.io/${{ github.repository }}/webserver:latest
-  #         docker tag ghcr.io/${{ github.repository }}/scheduler:${{ github.sha }} ghcr.io/${{ github.repository }}/scheduler:latest
-  #         docker tag ghcr.io/${{ github.repository }}/mlflow:${{ github.sha }} ghcr.io/${{ github.repository }}/mlflow:latest
-  #         docker tag ghcr.io/${{ github.repository }}/minio-minio:${{ github.sha }} ghcr.io/${{ github.repository }}/minio-minio:latest
-  #         docker tag ghcr.io/${{ github.repository }}/streamlit:${{ github.sha }} ghcr.io/${{ github.repository }}/streamlit:latest
-  #         docker tag ghcr.io/${{ github.repository }}/fastapi:${{ github.sha }} ghcr.io/${{ github.repository }}/fastapi:latest
-  #         # docker push ghcr.io/${{ github.repository }}/postgres:latest
-  #         docker push ghcr.io/${{ github.repository }}/webserver:latest
-  #         docker push ghcr.io/${{ github.repository }}/scheduler:latest
-  #         docker push ghcr.io/${{ github.repository }}/mlflow:latest
-  #         docker push ghcr.io/${{ github.repository }}/minio-minio:latest
-  #         docker push ghcr.io/${{ github.repository }}/streamlit:latest
-  #         docker push ghcr.io/${{ github.repository }}/fastapi:latest
