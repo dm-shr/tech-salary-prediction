@@ -12,13 +12,15 @@ import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { fetchFromAPI } from "@/utils/api"
 import { rateLimiter } from "@/utils/rateLimit"
 
+const CURRENCY_CONVERSION = 0.43; // Define the currency conversion rate
+
 export default function SalaryPredictorForm() {
   const [title, setTitle] = useState("Machine Learning Engineer")
   const [company, setCompany] = useState("Spotify")
   const [location, setLocation] = useState("Stockholm")
   const [description, setDescription] = useState("We are seeking a Machine Learning Engineer to join our team. The ideal candidate will have experience in developing and deploying ML models, working with large datasets, and implementing end-to-end ML pipelines. Key responsibilities include model development, experimentation, and collaboration with cross-functional teams. Strong programming skills in Python and experience with deep learning frameworks required.")
   const [skills, setSkills] = useState("Python, SQL, PyTorch")
-  const [experienceRange, setExperienceRange] = useState([0, 3]);
+  const [experienceRange, setExperienceRange] = useState([3, 6]);
   const [predictedSalary, setPredictedSalary] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -81,7 +83,10 @@ export default function SalaryPredictorForm() {
         }),
       })
 
-      setPredictedSalary(data.predicted_salary)
+      const predictedSalaryValue = parseFloat(data.predicted_salary) * CURRENCY_CONVERSION;
+      const roundedSalary = Math.round(predictedSalaryValue / 100) * 100; // Round to nearest hundred
+      const formattedSalary = roundedSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // Add space for thousands separator
+      setPredictedSalary(`${formattedSalary} SEK/month`); // Set the formatted salary
     } catch (error) {
       console.error("Error predicting salary:", error)
       setError(error instanceof Error ? error.message : "Failed to predict salary")
