@@ -24,19 +24,20 @@ x-airflow-common: &airflow-common
     - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
     - GIT_REPO_URL=${GIT_REPO_URL}
     - GITHUB_TOKEN=${GITHUB_TOKEN}
+    - USE_CURRENT_STATE=${USE_CURRENT_STATE}
   volumes:
     - ./dags:/opt/airflow/dags
     - ./logs:/opt/airflow/logs
     - ./plugins:/opt/airflow/plugins
     - airflow-repo:/opt/airflow/repo
     - ~/.aws:/home/airflow/.aws:ro
-    - inference-models:/app/models
-    - inference-models:/opt/airflow/inference/models  # Add shared volume with inference
-    - /var/run/docker.sock:/var/run/docker.sock  # Mount the Docker socket
+    - /var/run/docker.sock:/var/run/docker.sock:rw  # Add read-write permissions
   depends_on:
     postgres:
       condition: service_healthy
-  user: "50000:0" # Ensure airflow user has correct permissions
+  user: "50000:999"  # Use root group (usually docker group is 999)
+  group_add:
+    - "999"  # Add docker group to the container
 
 services:
   postgres:
@@ -67,21 +68,20 @@ services:
         condition: service_healthy
 
   repo-init:
-    container_name: repo-init  # Renamed container
+    container_name: repo-init
     # Option 1: Local development setup - copies local files
     image: alpine:latest
     volumes:
       - .:/tmp/repo:ro  # Mount local directory as read-only
       - airflow-repo:/opt/airflow/repo
-      - inference-models:/opt/airflow/inference/models # Mount inference models volume
     command: >
       sh -c "
         cp -r /tmp/repo/. /opt/airflow/repo/ && \
-        chown -R 50000:0 /opt/airflow/repo/ && \
-        chown -R 50000:0 /opt/airflow/inference/models
+        chown -R 50000:0 /opt/airflow/repo/
       "
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
     # Option 2: Remote repository setup - uncomment below and comment out Option 1 when ready
     # <<: *airflow-common
@@ -101,7 +101,7 @@ services:
   webserver:
     <<: *airflow-common
     container_name: webserver
-    user: "50000:0" # Ensure airflow user has correct permissions
+    user: "50000:999" # Ensure airflow user has correct permissions
     command: >
         bash -c "
         cd /opt/airflow/repo && \
@@ -120,7 +120,7 @@ services:
       repo-init:
         condition: service_completed_successfully
       airflow-init:
-        condition: service_started
+        condition: service_completed_successfully
       postgres:
         condition: service_healthy
 
@@ -193,11 +193,11 @@ services:
       exit 0;
       "
 
-  inference:
+  streamlit:
     container_name: streamlit
     build:
       context: .
-      dockerfile: backend/docker/inference/Dockerfile
+      dockerfile: backend/docker/streamlit/Dockerfile
     ports:
       - "8501:8501"
     environment:
@@ -208,8 +208,7 @@ services:
       - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
       - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
       - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
-    volumes:
-      - inference-models:/app/models  # Same volume as Airflow
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     restart: always
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8501/health"]
@@ -217,8 +216,6 @@ services:
       timeout: 10s
       retries: 3
     depends_on:
-      fastapi:
-        condition: service_started
       mlflow:
         condition: service_healthy
 
@@ -232,19 +229,23 @@ services:
     environment:
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION}
+      - AWS_BUCKET_NAME=${AWS_BUCKET_NAME}
       - MLFLOW_S3_ENDPOINT_URL=${MLFLOW_S3_ENDPOINT_URL}
+      - MLFLOW_TRACKING_URI=${MLFLOW_TRACKING_URI}
+      - MLFLOW_EXPERIMENT_NAME=${MLFLOW_EXPERIMENT_NAME}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
     depends_on:
       mlflow:
         condition: service_healthy
-    volumes:
-      - ./backend/src:/app/src
-      - ./backend/configs:/app/configs
     restart: always
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:8000/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   postgres-db-volume:
   airflow-repo:
   minio-data:
-  inference-models:
-  inference-data:

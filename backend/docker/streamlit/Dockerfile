@@ -12,12 +12,12 @@ RUN apt-get update && \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy only requirements files first
-COPY backend/requirements.base_debug.txt backend/requirements.inference.txt ./
+COPY backend/requirements.base.txt backend/requirements.streamlit.txt ./
 
 # Install Python dependencies - this layer will be cached unless requirements change
 RUN pip install --upgrade pip && \
-    pip install -r requirements.base_debug.txt && \
-    pip install -r requirements.inference.txt
+    pip install -r requirements.base.txt && \
+    pip install -r requirements.streamlit.txt
 
 # Create directories for models and data
 RUN mkdir -p /app/models /app/data
@@ -25,7 +25,7 @@ RUN mkdir -p /app/models /app/data
 # Copy source code and other files - these change more frequently
 COPY backend/src/ ./src/
 COPY backend/configs/ ./configs/
-COPY backend/docker/inference/entrypoint.sh ./entrypoint.sh
+COPY backend/docker/streamlit/entrypoint.sh ./entrypoint.sh
 
 # Make entrypoint executable
 RUN chmod +x /app/entrypoint.sh

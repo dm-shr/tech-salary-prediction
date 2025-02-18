@@ -1,17 +1,35 @@
 import logging
+import os
 import re
 from typing import Literal
 from typing import Optional
 from typing import Tuple
 
 import pandas as pd
-import torch
-from transformers import AutoTokenizer
+from dotenv import load_dotenv
 
 from src.preprocessing.main import JobDataPreProcessor
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
+
+try:
+    from google import genai
+    from pydantic import BaseModel
+
+    class TranslationResult(BaseModel):
+        company: str
+        description: str
+        location: str
+
+    translation_enabled = True
+    print("google-generativeai is installed. Translation will be enabled.")
+except ImportError:
+    print("google-generativeai is not installed. Translation will be disabled.")
+    translation_enabled = False
+
+
+load_dotenv()
 
 
 class FeatureBuilder:
@@ -28,6 +46,22 @@ class FeatureBuilder:
             config = load_config()
             self.config = config
             self.is_test = config["is_test"]
+            self.transformer_enabled = config["models"]["transformer"]["enabled"]
+
+            # Initialize transformer-specific components if enabled
+            if self.transformer_enabled:
+                self.logger.info("Initializing transformer dependencies...")
+                import torch
+                from transformers import AutoTokenizer
+
+                self.torch = torch
+
+                tokenizer_name = (
+                    config["features"]["transformer"]["tokenizer"]
+                    if not self.is_test
+                    else config["features"]["transformer"]["tokenizer_test"]
+                )
+                self.tokenizer_transformer = AutoTokenizer.from_pretrained(tokenizer_name)
 
             # Get current week info
             week_info = current_week_info()
@@ -44,13 +78,15 @@ class FeatureBuilder:
             target_base = config["features"]["target_base"]
             self.target_output_path = f"{target_base}{week_suffix}"
 
-            # Update transformer paths with week suffix
-            transformer_base = config["features"]["transformer"]["features_base"]
-            for item in config["features"]["transformer"]["feature_processing"]:
-                item["path"] = f"{transformer_base}/{item['name']}{week_suffix}.pt"
-            self.transformer_feature_processing = config["features"]["transformer"][
-                "feature_processing"
-            ]
+            # Update transformer paths only if enabled
+            if self.transformer_enabled:
+                transformer_base = config["features"]["transformer"]["features_base"]
+                for item in config["features"]["transformer"]["feature_processing"]:
+                    item["path"] = f"{transformer_base}/{item['name']}{week_suffix}.pt"
+                self.transformer_feature_processing = config["features"]["transformer"][
+                    "feature_processing"
+                ]
+            self.add_query_prefix = config["features"]["transformer"]["add_query_prefix"]
 
             # Update catboost path with week suffix
             catboost_base = config["features"]["catboost"]["features_base"]
@@ -70,26 +106,14 @@ class FeatureBuilder:
 
             self.catboost_features = extract_features(config["features"]["features"]["catboost"])
             # get text features
-            self.text_features = (
-                config["features"]["features"]["transformer"]["text"]
-                + config["features"]["features"]["bi_gru_cnn"]["text"]
-            )
+            self.text_features = []
+            if self.transformer_enabled:
+                self.text_features.extend(config["features"]["features"]["transformer"]["text"])
+            self.text_features.extend(config["features"]["features"]["bi_gru_cnn"]["text"])
             self.text_features = list(set(self.text_features))
-
-            self.add_query_prefix = config["features"]["transformer"][
-                "add_query_prefix"
-            ]  # whether to add 'query: ' prefix to text features
 
             self.logger.info(f"Input file path: {self.preprocessed_data_path}")
             self.logger.info(f"Output file path: {self.output_file_path}")
-
-            # Load tokenizer
-            tokenizer_name = (
-                config["features"]["transformer"]["tokenizer"]
-                if not self.is_test
-                else config["features"]["transformer"]["tokenizer_test"]
-            )
-            self.tokenizer_transformer = AutoTokenizer.from_pretrained(tokenizer_name)
 
             # Initialize data as None for inference mode
             self.data = None
@@ -101,7 +125,60 @@ class FeatureBuilder:
             self.logger.error(f"Failed to initialize FeatureBuilder: {str(e)}")
             raise
 
-    def prepare_set_inference_data(
+    async def _translate_with_gemini(
+        self, company: str, description: str, location: str
+    ) -> "TranslationResult":
+        """Translates company, description, and location using Google Gemini API."""
+        if not translation_enabled:
+            self.logger.warning("Translation is disabled.")
+            return TranslationResult(company=company, description=description, location=location)
+
+        try:
+            client = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+
+            prompt = f"""
+            You are an expert in localizing job market information for Russia.
+            Given the following job posting details, your task is to:
+            1.  Convert the company name to a well-known Russian company \
+(e.g., Yandex, Avito, Sber, Mail, VK, EPAM, X5 Retail Group). Be creative!
+            2.  Translate the job description into Russian.
+            3.  Convert the location to a relevant location within Russia.
+
+            Here are the details:
+            - Company: {company}
+            - Description: {description}
+            - Location: {location}
+
+            Provide the localized information in the following JSON format:
+            {{
+                "company": "Russian Company Name",
+                "description": "Russian Translation of the Job Description",
+                "location": "Location in Russia"
+            }}
+            """
+
+            self.logger.info(f"Translation prompt: {prompt}")
+
+            response = await client.aio.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=prompt,
+                config={
+                    "response_mime_type": "application/json",
+                    "response_schema": TranslationResult,
+                },
+            )
+
+            self.logger.info(f"Translation response: {response.text}")
+
+            translation_result: TranslationResult = response.parsed
+
+            return translation_result
+
+        except Exception as e:
+            self.logger.error(f"Translation failed: {str(e)}")
+            return TranslationResult(company=company, description=description, location=location)
+
+    async def prepare_set_inference_data(
         self,
         title: str,
         company: str,
@@ -112,8 +189,15 @@ class FeatureBuilder:
         experience_to: int,
         source: Literal["headhunter", "getmatch"] = "headhunter",
     ) -> pd.DataFrame:
-        """Prepare input data for inference in the format expected by FeatureBuilder to then build features.
-        Set the data attribute of the FeatureBuilder instance to the input data."""
+        """Prepare input data for inference, translate if needed, and set the data attribute."""
+        self.logger.info("Preparing inference data...")
+        if self.is_inference and translation_enabled:
+            self.logger.info("Translating data with Gemini API...")
+            translation = await self._translate_with_gemini(company, description, location)
+            company = translation.company
+            description = translation.description
+            location = translation.location
+
         input_dict = {
             "title": [title],
             "company": [company],
@@ -329,7 +413,11 @@ class FeatureBuilder:
             raise
 
     def add_query_prefix_to_text_features(self) -> None:
-        """Add 'query: ' prefix to text features."""
+        """Add 'query: ' prefix to text features if transformer is enabled."""
+        if not self.transformer_enabled:
+            self.logger.info("Skipping query prefix addition - transformer is disabled")
+            return
+
         try:
             self.logger.info("Adding 'query: ' prefix to text features...")
             for feature in self.text_features:
@@ -340,7 +428,11 @@ class FeatureBuilder:
             raise
 
     def process_and_get_transformer_features(self) -> Optional[dict]:
-        """Process text features for transformer and either save or return them."""
+        """Process text features for transformer if enabled."""
+        if not self.transformer_enabled:
+            self.logger.info("Skipping transformer feature processing - transformer is disabled")
+            return None
+
         try:
             self.logger.info("Processing transformer features...")
             features_dict = {}
@@ -361,7 +453,7 @@ class FeatureBuilder:
                     features_dict[feature] = tokenized_data
                 else:
                     feature_path = feature_processing_dict["path"]
-                    torch.save(tokenized_data, feature_path)
+                    self.torch.save(tokenized_data, feature_path)
                     self.logger.info(f"Saved {feature} to {feature_path}")
 
             return features_dict if self.is_inference else None
@@ -392,9 +484,17 @@ class FeatureBuilder:
                 return None
 
             target_values = self.data[[self.target_name]].values
-            torch.save(target_values, self.target_output_path + ".pt")
+
+            # Save CSV version regardless of transformer status
             self.data[[self.target_name]].to_csv(self.target_output_path + ".csv", index=False)
-            self.logger.info(f"Target data saved to {self.target_output_path}")
+
+            if self.transformer_enabled:
+                self.torch.save(target_values, self.target_output_path + ".pt")
+                self.logger.info(f"Target data saved to {self.target_output_path} (.csv and .pt)")
+            else:
+                self.logger.info(
+                    f"Target data saved to {self.target_output_path}.csv (skipped .pt - transformer disabled)"
+                )
             return None
 
         except Exception as e:
@@ -430,8 +530,8 @@ class FeatureBuilder:
             self._build()
 
             results = {
-                "transformer_features": self.process_and_get_transformer_features(),
                 "catboost_features": self.process_and_get_catboost_features(),
+                "transformer_features": self.process_and_get_transformer_features(),
             }
 
             if not self.is_inference:

@@ -22,13 +22,6 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-def setup_mlflow(config):
-    """Initialize MLflow tracking with config settings."""
-    mlflow.set_tracking_uri(config["logging"]["mlflow"]["tracking_uri"])
-    mlflow.set_experiment(config["logging"]["mlflow"]["experiment_name"])
-    return mlflow
-
-
 def mean_confidence_interval(data, confidence=0.95):
     n = len(data)
     m, se = np.mean(data), np.std(data) / np.sqrt(n)

@@ -11,7 +11,7 @@ from src.training.transformer.model import SingleBERTWithMLP
 from src.training.transformer.train import fit_eval
 from src.training.transformer.utils import log_metrics_to_mlflow
 from src.training.transformer.utils import log_seed_metrics_and_plot
-from src.training.utils import set_seed
+from src.training.transformer.utils import set_seed
 from src.training.utils import setup_mlflow
 from src.utils.utils import current_week_info  # dict with keys 'week_number' and 'year'
 from src.utils.utils import load_config

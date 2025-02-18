@@ -2,10 +2,10 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-COPY backend/requirements.base_debug.txt backend/requirements.fastapi.txt ./
+COPY backend/requirements.base.txt backend/requirements.fastapi.txt ./
 
 RUN pip install --upgrade pip && \
-    pip install -r requirements.base_debug.txt && \
+    pip install -r requirements.base.txt && \
     pip install -r requirements.fastapi.txt
 
 COPY backend/src/ ./src/

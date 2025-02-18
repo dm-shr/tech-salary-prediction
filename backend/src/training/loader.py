@@ -1,7 +1,4 @@
-import torch
-
 from src.training.catboost.model import CatBoostModel
-from src.training.transformer.model import SingleBERTWithMLP
 from src.utils.s3_model_loader import S3ModelLoader
 from src.utils.utils import load_config
 
@@ -21,6 +18,9 @@ def load_models():
 
     # Load Transformer model if enabled and available
     if config["models"]["transformer"]["enabled"] and model_paths.get("transformer"):
+        import torch
+        from src.training.transformer.model import SingleBERTWithMLP
+
         transformer = SingleBERTWithMLP(config)
         transformer.load_state_dict(torch.load(model_paths["transformer"]))
         models["transformer"] = transformer
