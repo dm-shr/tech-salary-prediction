@@ -9,14 +9,14 @@ from src.training.transformer.model import SingleBERTWithMLP
 
 
 def test_healthcheck_transformer_enabled(test_client, mock_config_transformer_enabled):
-    with patch("src.api.config", mock_config_transformer_enabled):
+    with patch("src.fastapi_app.config", mock_config_transformer_enabled):
         response = test_client.get("/healthcheck")
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "transformer_enabled": True}
 
 
 def test_healthcheck_transformer_disabled(test_client, mock_config_transformer_disabled):
-    with patch("src.api.config", mock_config_transformer_disabled):
+    with patch("src.fastapi_app.config", mock_config_transformer_disabled):
         response = test_client.get("/healthcheck")
         assert response.status_code == 200
         assert response.json() == {"status": "ok", "transformer_enabled": False}
@@ -29,14 +29,14 @@ def test_predict_with_transformer(
     mock_transformer_model: SingleBERTWithMLP,
     sample_input,
 ):
-    with patch("src.api.config", mock_config_transformer_enabled), patch(
+    with patch("src.fastapi_app.config", mock_config_transformer_enabled), patch(
         "src.feature_building.main.FeatureBuilder._translate_with_gemini"
-    ) as mock_translate, patch("src.api.predict_salary") as mock_predict_salary, patch(
-        "src.api.FeatureBuilder.build"
+    ) as mock_translate, patch("src.fastapi_app.predict_salary") as mock_predict_salary, patch(
+        "src.fastapi_app.FeatureBuilder.build"
     ) as mock_feature_builder, patch(
-        "src.api.catboost_model", new=mock_catboost_model
+        "src.fastapi_app.catboost_model", new=mock_catboost_model
     ), patch(
-        "src.api.transformer_model", new=mock_transformer_model
+        "src.fastapi_app.transformer_model", new=mock_transformer_model
     ):
 
         # Mock the translation to return the original values
@@ -76,14 +76,14 @@ def test_predict_with_transformer(
 def test_predict_without_transformer(
     test_client, mock_config_transformer_disabled, mock_catboost_model: CatBoostModel, sample_input
 ):
-    with patch("src.api.config", mock_config_transformer_disabled), patch(
+    with patch("src.fastapi_app.config", mock_config_transformer_disabled), patch(
         "src.feature_building.main.FeatureBuilder._translate_with_gemini"
-    ) as mock_translate, patch("src.api.predict_salary") as mock_predict_salary, patch(
-        "src.api.FeatureBuilder.build"
+    ) as mock_translate, patch("src.fastapi_app.predict_salary") as mock_predict_salary, patch(
+        "src.fastapi_app.FeatureBuilder.build"
     ) as _, patch(
-        "src.api.catboost_model", new=mock_catboost_model
+        "src.fastapi_app.catboost_model", new=mock_catboost_model
     ), patch(
-        "src.api.transformer_model", new=None
+        "src.fastapi_app.transformer_model", new=None
     ):
         # Mock the translation to return the original values
         mock_translate.return_value = TranslationResult(
@@ -127,7 +127,7 @@ def test_predict_invalid_field_values(test_client, sample_input, field, invalid_
     modified_input = sample_input.copy()
     modified_input[field] = invalid_value
 
-    with patch("src.api.feature_builder.prepare_set_inference_data") as mock_prepare:
+    with patch("src.fastapi_app.feature_builder.prepare_set_inference_data") as mock_prepare:
         mock_prepare.side_effect = ValueError("Invalid input")  # Prevent feature building
         response = test_client.post("/predict", json=modified_input)
         assert response.status_code == 422
@@ -136,8 +136,8 @@ def test_predict_invalid_field_values(test_client, sample_input, field, invalid_
 def test_predict_model_error(
     test_client, mock_config_transformer_enabled, mock_catboost_model, sample_input
 ):
-    with patch("src.api.config", mock_config_transformer_enabled), patch(
-        "src.api.FeatureBuilder.build"
+    with patch("src.fastapi_app.config", mock_config_transformer_enabled), patch(
+        "src.fastapi_app.FeatureBuilder.build"
     ) as mock_feature_builder:
         mock_feature_builder.side_effect = Exception("Model error")
 

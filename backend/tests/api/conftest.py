@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
-from src.api import app
+from src.fastapi_app import app
 from src.training.catboost.model import CatBoostModel
 
 
