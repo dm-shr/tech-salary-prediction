@@ -59,7 +59,7 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           cd backend
-          pytest tests/ -vvv --cov=. --cov-report term-missing
+          pytest tests/ -vvv --cov=. --cov-report term-missing -o log_cli=1
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
