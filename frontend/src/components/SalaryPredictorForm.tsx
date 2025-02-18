@@ -108,8 +108,24 @@ export default function SalaryPredictorForm() {
       <div className="mt-2 pt-2 border-t border-gray-200 text-center mb-4">
         <p className="text-sm text-gray-600">Interested? Let&apos;s stay in touch!</p>
         <div className="mt-2 flex justify-center space-x-4">
-          <FaGithub className="text-xl text-black" />
-          <FaLinkedin className="text-xl" />
+          <a
+            href="https://github.com/dm-shr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-900 hover:text-black flex items-center gap-2"
+          >
+            <FaGithub className="text-xl text-black" />
+            <span className="hidden md:inline">GitHub</span> {/* Hide text on small screens */}
+          </a>
+          <a
+            href="https://www.linkedin.com/in/dshiriaev/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+          >
+            <FaLinkedin className="text-xl" />
+            <span className="hidden md:inline">LinkedIn</span> {/* Hide text on small screens */}
+          </a>
         </div>
       </div>
 
@@ -117,9 +133,9 @@ export default function SalaryPredictorForm() {
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="mb-4">
             <Label htmlFor="title" className="mb-3 block">Job Title</Label>
-            <div className="flex flex-col">
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {titleExamples.map((example) => (
                   <Button type="button" variant="outline" size="sm" key={example} onClick={() => setTitle(example)}
                     className="btn-outline">
@@ -131,9 +147,9 @@ export default function SalaryPredictorForm() {
           </div>
           <div className="mb-4">
             <Label htmlFor="company" className="mb-2 block">Company</Label>
-            <div className="flex flex-col">
-              <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} required className="w-full" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="company" value={company} onChange={(e) => setCompany(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {companyExamples.map((example) => (
                   <Button type="button" variant="outline" size="sm" key={example} onClick={() => setCompany(example)}
                     className="btn-outline">
@@ -145,9 +161,9 @@ export default function SalaryPredictorForm() {
           </div>
           <div className="mb-2">
             <Label htmlFor="location" className="mb-3 block">Location</Label>
-            <div className="flex flex-col">
-              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} required className="w-full" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {locationExamples.map((example) => (
                   <Button type="button" variant="outline" size="sm" key={example} onClick={() => setLocation(example)}
                     className="btn-outline">
@@ -159,9 +175,9 @@ export default function SalaryPredictorForm() {
           </div>
           <div className="mb-4">
             <Label htmlFor="skills" className="mb-3 block">Skills, comma-separated</Label>
-            <div className="flex flex-col">
-              <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} required className="w-full" />
-              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full">
+            <div className="flex flex-col md:flex-row"> {/* Switch to row layout on medium screens and up */}
+              <Input id="skills" value={skills} onChange={(e) => setSkills(e.target.value)} required className="w-full md:w-3/5" /> {/* Adjust width on medium screens and up */}
+              <div className="flex flex-wrap justify-center space-x-2 mt-1 w-full md:w-2/5"> {/* Adjust width on medium screens and up */}
                 {skillsExamples.map((skill) => (
                   <Button
                     type="button"
