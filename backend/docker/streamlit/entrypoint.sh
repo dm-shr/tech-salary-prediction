@@ -1,4 +1,4 @@
 #!/bin/bash
 
 # Start Streamlit
-streamlit run /app/src/app.py
+streamlit run /app/src/streamlit_app.py
