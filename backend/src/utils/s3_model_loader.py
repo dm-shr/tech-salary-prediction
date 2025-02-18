@@ -39,12 +39,18 @@ class S3ModelLoader:
             "catboost": {
                 "prefix": self.config["models"]["catboost"]["save_dir"],
                 "pattern": "catboost_week_{week}_year_{year}.cbm",
+                "latest_pattern": "catboost_latest.cbm",
                 "enabled": True,  # CatBoost is always enabled in config
+                "use_latest_model_flag": self.config["models"]["catboost"]["use_latest_model_flag"],
             },
             "transformer": {
                 "prefix": self.config["models"]["transformer"]["save_base"],
                 "pattern": "transformer_week_{week}_year_{year}.pt",
+                "latest_pattern": "transformer_latest.pt",
                 "enabled": self.config["models"]["transformer"]["enabled"],
+                "use_latest_model_flag": self.config["models"]["transformer"][
+                    "use_latest_model_flag"
+                ],
             },
         }
 
@@ -79,9 +85,12 @@ class S3ModelLoader:
             logger.info(f"Model type {model_type} is disabled in config")
             return None
 
-        filename = model_config["pattern"].format(
-            week=week_info["week_number"], year=week_info["year"]
-        )
+        if model_config["use_latest_model_flag"]:
+            filename = model_config["latest_pattern"]
+        else:
+            filename = model_config["pattern"].format(
+                week=week_info["week_number"], year=week_info["year"]
+            )
 
         s3_path = f"{model_config['prefix']}/{filename}"
         local_path = self.local_model_dir / model_type / filename
