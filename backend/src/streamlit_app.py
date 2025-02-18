@@ -109,16 +109,24 @@ async def main():
         st.info("Running with CatBoost model only")
 
     # Input fields
-    title = st.text_input("Job Title", value="Data Scientist")
-    company = st.text_input("Company", value="Yandex")
-    location = st.text_input("Location", value="Moscow")
-    description = st.text_area("Job Description", value="We are looking for a Data Scientist")
-    skills = st.text_area("Required Skills (comma-separated)", value="python,sql,ml")
+    title = st.text_input("Job Title", value="Machine Learning Engineer")
+    company = st.text_input("Company", value="Spotify")
+    location = st.text_input("Location", value="Stockholm")
+    description = st.text_area(
+        "Job Description",
+        value="We are seeking a Machine Learning Engineer to join our team. "
+        "The ideal candidate will have experience in developing and deploying ML models, "
+        "working with large datasets, and implementing end-to-end ML pipelines. "
+        "Key responsibilities include model development, experimentation, "
+        "and collaboration with cross-functional teams. "
+        "Strong programming skills in Python and experience with deep learning frameworks required.",
+    )
+    skills = st.text_area("Required Skills (comma-separated)", value="Python, SQL, PyTorch")
     experience_from = st.number_input(
-        "Minimum Years of Experience", min_value=0, max_value=20, value=0
+        "Minimum Years of Experience", min_value=0, max_value=20, value=3
     )
     experience_to = st.number_input(
-        "Maximum Years of Experience", min_value=0, max_value=20, value=3
+        "Maximum Years of Experience", min_value=0, max_value=20, value=6
     )
 
     if st.button("Predict Salary"):
@@ -137,8 +145,16 @@ async def main():
             # Reverse log transformation and scale
             final_salary = np.exp(predicted_salary) * 1000
 
-            st.success(f"Predicted Salary: RUR {final_salary[0]:,.2f}")
-            logger.info(f"Prediction successful: RUR {final_salary[0]:,.2f}")
+            # Currency conversion and formatting
+            CURRENCY_CONVERSION = 0.43
+            predicted_salary_value = float(final_salary) * CURRENCY_CONVERSION
+            rounded_salary = round(predicted_salary_value / 100) * 100  # Round to nearest hundred
+            formatted_salary = str(int(rounded_salary)).replace(
+                r"\B(?=(\d{3})+(?!\d))", " "
+            )  # Add space for thousands separator
+
+            st.success(f"Predicted Salary: {formatted_salary} SEK/month")
+            logger.info(f"Prediction successful: {formatted_salary} SEK/month")
 
         except Exception as e:
             st.error(f"Error during prediction: {str(e)}")
