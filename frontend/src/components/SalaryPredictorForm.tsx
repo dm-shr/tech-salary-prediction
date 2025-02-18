@@ -96,12 +96,6 @@ export default function SalaryPredictorForm() {
     }
   }
 
-  const handleRangeChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
-    const newRange = [...experienceRange];
-    newRange[index] = parseInt(e.target.value);
-    setExperienceRange(newRange);
-  };
-
   useEffect(() => {
     if (experienceRange[1] < experienceRange[0]) {
       setExperienceRange([experienceRange[0], experienceRange[0]]);
