@@ -242,4 +242,4 @@ Metrics are reported as a mean value ± 95% confidence intervals across three ra
 
 
 ## License
-This project is licensed under the MIT License - see the LICENSE file for details.
+See the LICENSE file for details.
