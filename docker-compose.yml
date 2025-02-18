@@ -193,11 +193,11 @@ services:
       exit 0;
       "
 
-  inference:
+  streamlit:
     container_name: streamlit
     build:
       context: .
-      dockerfile: backend/docker/inference/Dockerfile
+      dockerfile: backend/docker/streamlit/Dockerfile
     ports:
       - "8501:8501"
     environment:
