@@ -1,3 +1,4 @@
+import logging
 import os
 from datetime import timedelta
 
@@ -10,16 +11,22 @@ from dotenv import load_dotenv
 import docker
 
 
+# Load environment variables
+load_dotenv(override=True)
+
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
 # Add debug logging
 def print_config():
-    print("DAG Directory:", os.getenv("AIRFLOW__CORE__DAGS_FOLDER"))
-    print("Current Directory:", os.getcwd())
-    print("Repository Path:", os.getenv("REPO_PATH"))
-    print("Files in DAG folder:", os.listdir(os.getenv("AIRFLOW__CORE__DAGS_FOLDER", ".")))
+    logger.info("DAG Directory: %s", os.getenv("AIRFLOW__CORE__DAGS_FOLDER"))
+    logger.info("Current Directory: %s", os.getcwd())
+    logger.info("Repository Path: %s", os.getenv("REPO_PATH"))
+    logger.info("Files in DAG folder: %s", os.listdir(os.getenv("AIRFLOW__CORE__DAGS_FOLDER", ".")))
 
-
-# Load environment variables
-load_dotenv()
 
 default_args = {
     "owner": os.getenv("AIRFLOW_OWNER", "airflow"),
@@ -39,10 +46,10 @@ REPO_PATH = os.getenv("REPO_PATH", "/opt/airflow/repo")  # Keep REPO_PATH at the
 with DAG(
     "salary_prediction_pipeline",
     default_args=default_args,
-    description="Weekly salary prediction pipeline with DVC",
+    description="Weekly salary prediction pipeline",
     schedule_interval="0 0 * * MON",
     catchup=False,
-    tags=["ml", "production", "dvc"],
+    tags=["ml", "production"],
 ) as dag:
 
     # Add debug task
@@ -314,11 +321,11 @@ with DAG(
             client = docker.from_env()
             container = client.containers.get(container_name)
             container.restart()
-            print(f"Container '{container_name}' restarted successfully.")
+            logger.info("Container '%s' restarted successfully.", container_name)
         except docker.errors.NotFound:
-            print(f"Container '{container_name}' not found.")
+            logger.warning("Container '%s' not found.", container_name)
         except docker.errors.APIError as e:
-            print(f"Error restarting container '{container_name}': {e}")
+            logger.error("Error restarting container '%s': %s", container_name, e)
 
     # Cleanup after successful inference trigger
     cleanup_files = BashOperator(
