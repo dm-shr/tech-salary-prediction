@@ -4,9 +4,11 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
   lint:
@@ -30,7 +32,7 @@ jobs:
             --disable=E0606,W0707,C0415 \
             $(git ls-files '*.py')
 
-  test:
+  backend-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -57,14 +59,24 @@ jobs:
           cd backend
           pytest tests/ -vvv --cov=. --cov-report term-missing -o log_cli=1
 
-      - name: Upload test results
-        uses: actions/upload-artifact@v4
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
         with:
-          name: test-results
-          path: backend/test-results.xml
+          node-version: '20'
 
-      - name: Upload coverage report
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: backend/coverage.xml
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run tests
+        env:
+          API_URL: "https://api.example.com"
+          API_KEY: "test-api-key"
+        run: |
+          cd frontend
+          npm test

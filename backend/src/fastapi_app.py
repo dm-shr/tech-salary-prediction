@@ -3,7 +3,9 @@ from typing import Optional
 
 import numpy as np
 from dotenv import load_dotenv
+from fastapi import Depends
 from fastapi import FastAPI
+from fastapi import Header
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -111,12 +113,24 @@ app = FastAPI()
 origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000").split(",")
 logger.info("Allowed origins: %s", origins)
 
+# API Key Authentication
+API_KEYS = os.getenv("API_KEYS", "").split(",")
+
+
+async def verify_api_key(x_api_key: str = Header(...)):
+    valid_keys = [key.strip() for key in API_KEYS if key.strip()]
+    if x_api_key not in valid_keys:
+        raise HTTPException(status_code=401, detail="Invalid API Key")
+    return x_api_key
+
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[origin.strip() for origin in origins if origin.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["POST"],  # Only allow needed methods
+    allow_headers=["X-API-Key", "Content-Type"],  # Only allow needed headers
+    expose_headers=[],
 )
 
 
@@ -137,7 +151,7 @@ async def healthcheck():
     return {"status": "ok", "transformer_enabled": config["models"]["transformer"]["enabled"]}
 
 
-@app.post("/predict")
+@app.post("/predict", dependencies=[Depends(verify_api_key)])
 async def predict(input_data: InferenceInput):
     try:
         # Prepare inference data
