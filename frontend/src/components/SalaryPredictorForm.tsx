@@ -11,7 +11,7 @@ import 'rc-slider/assets/index.css';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { rateLimiter } from "@/utils/rateLimit"
 
-const CURRENCY_CONVERSION = 0.43; // Define the currency conversion rate
+const CURRENCY_CONVERSION = 0.38; // Define the currency conversion rate
 
 export default function SalaryPredictorForm() {
   const [title, setTitle] = useState("Machine Learning Engineer")
