@@ -126,10 +126,11 @@ async def verify_api_key(x_api_key: str = Header(...)):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=[origin.strip() for origin in origins if origin.strip()],
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["POST"],  # Only allow needed methods
+    allow_headers=["X-API-Key", "Content-Type"],  # Only allow needed headers
+    expose_headers=[],
 )
 
 
