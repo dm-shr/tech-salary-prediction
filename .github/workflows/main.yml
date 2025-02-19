@@ -30,7 +30,7 @@ jobs:
             --disable=E0606,W0707,C0415 \
             $(git ls-files '*.py')
 
-  test:
+  backend-test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -68,3 +68,32 @@ jobs:
         with:
           name: coverage-report
           path: backend/coverage.xml
+
+  frontend-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Run tests
+        env:
+          API_URL: "https://api.example.com"
+          API_KEY: "test-api-key"
+        run: |
+          cd frontend
+          npm test
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-test-results
+          path: frontend/coverage
