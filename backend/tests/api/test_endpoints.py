@@ -15,6 +15,7 @@ API_KEYS = f"{API_KEY},another_key"  # Define a test API keys
 
 
 def test_healthcheck_transformer_enabled(test_client, mock_config_transformer_enabled):
+    """Test healthcheck endpoint when transformer is enabled."""
     with patch("src.fastapi_app.config", mock_config_transformer_enabled):
         response = test_client.get("/healthcheck")
         assert response.status_code == status.HTTP_200_OK
@@ -22,6 +23,7 @@ def test_healthcheck_transformer_enabled(test_client, mock_config_transformer_en
 
 
 def test_healthcheck_transformer_disabled(test_client, mock_config_transformer_disabled):
+    """Test healthcheck endpoint when transformer is disabled."""
     with patch("src.fastapi_app.config", mock_config_transformer_disabled):
         response = test_client.get("/healthcheck")
         assert response.status_code == status.HTTP_200_OK
@@ -35,6 +37,7 @@ def test_predict_with_transformer(
     mock_transformer_model: SingleBERTWithMLP,
     sample_input,
 ):
+    """Test prediction endpoint with both models enabled."""
     with patch("src.fastapi_app.config", mock_config_transformer_enabled), patch(
         "src.feature_building.main.FeatureBuilder._translate_with_gemini"
     ) as mock_translate, patch("src.fastapi_app.predict_salary") as mock_predict_salary, patch(
@@ -83,6 +86,7 @@ def test_predict_with_transformer(
 def test_predict_without_transformer(
     test_client, mock_config_transformer_disabled, mock_catboost_model: CatBoostModel, sample_input
 ):
+    """Test prediction endpoint with only CatBoost model."""
     with patch("src.fastapi_app.config", mock_config_transformer_disabled), patch(
         "src.feature_building.main.FeatureBuilder._translate_with_gemini"
     ) as mock_translate, patch("src.fastapi_app.predict_salary") as mock_predict_salary, patch(
@@ -114,6 +118,7 @@ def test_predict_without_transformer(
 
 
 def test_predict_invalid_input(test_client):
+    """Test prediction endpoint with missing required fields."""
     invalid_input = {
         "title": "Data Scientist",
         # missing required fields
@@ -135,6 +140,7 @@ def test_predict_invalid_input(test_client):
     ],
 )
 def test_predict_invalid_field_values(test_client, sample_input, field, invalid_value):
+    """Test prediction endpoint with invalid field values."""
     modified_input = sample_input.copy()
     modified_input[field] = invalid_value
 
@@ -147,6 +153,7 @@ def test_predict_invalid_field_values(test_client, sample_input, field, invalid_
 def test_predict_model_error(
     test_client, mock_config_transformer_enabled, mock_catboost_model, sample_input
 ):
+    """Test prediction endpoint when model fails."""
     with patch("src.fastapi_app.config", mock_config_transformer_enabled), patch(
         "src.fastapi_app.FeatureBuilder.build"
     ) as mock_feature_builder:
@@ -159,6 +166,7 @@ def test_predict_model_error(
 
 
 def test_predict_missing_api_key(test_client, sample_input):
+    """Test prediction endpoint with missing API key."""
     try:
         test_client.post("/predict", json=sample_input)
     except HTTPException as e:
@@ -167,6 +175,7 @@ def test_predict_missing_api_key(test_client, sample_input):
 
 
 def test_predict_invalid_api_key(test_client, sample_input):
+    """Test prediction endpoint with invalid API key."""
     with patch.dict("os.environ", {"API_KEYS": API_KEYS}):
         response = test_client.post(
             "/predict", json=sample_input, headers={"X-API-Key": "invalid_key"}
