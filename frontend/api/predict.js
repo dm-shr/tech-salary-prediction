@@ -6,6 +6,11 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'API Key not configured' });
   }
 
+  // Add HTTPS check
+  if (!apiUrl.startsWith('https://')) {
+    return res.status(500).json({ error: 'API must be served over HTTPS' });
+  }
+
   try {
     const response = await fetch(`${apiUrl}/predict`, {
       method: 'POST',
