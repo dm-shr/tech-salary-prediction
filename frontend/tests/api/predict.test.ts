@@ -1,4 +1,4 @@
-import handler from '../../api/predict';
+import handler from '../../pages/api/predict';
 
 describe('API Handler', () => {
   const mockReq = {
@@ -20,9 +20,28 @@ describe('API Handler', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    process.env.NODE_ENV = 'production'; // Default to production
   });
 
-  test('rejects non-HTTPS API URLs', async () => {
+  test('allows HTTP URLs in development mode', async () => {
+    process.env.NODE_ENV = 'development';
+    process.env.API_URL = 'http://localhost:8000';
+    process.env.API_KEY = 'test-key';
+
+    const mockFetch = jest.fn().mockResolvedValue({
+      ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve({ predicted_salary: 50000 })
+    });
+    global.fetch = mockFetch;
+
+    await handler(mockReq, mockRes);
+
+    expect(mockRes.status).toHaveBeenCalledWith(200);
+  });
+
+  test('rejects non-HTTPS URLs in production', async () => {
+    process.env.NODE_ENV = 'production';
     process.env.API_URL = 'http://insecure-url.com';
     process.env.API_KEY = 'test-key';
 
@@ -30,7 +49,7 @@ describe('API Handler', () => {
 
     expect(mockRes.status).toHaveBeenCalledWith(500);
     expect(mockRes.json).toHaveBeenCalledWith({
-      error: 'API must be served over HTTPS'
+      error: 'API must be served over HTTPS in production'
     });
   });
 
@@ -49,12 +68,14 @@ describe('API Handler', () => {
   test('successfully makes prediction request', async () => {
     const mockFetch = jest.fn().mockResolvedValue({
       ok: true,
+      headers: new Headers({ 'content-type': 'application/json' }),
       json: () => Promise.resolve({ predicted_salary: 50000 })
     });
     global.fetch = mockFetch;
 
     process.env.API_URL = 'https://api.example.com';
     process.env.API_KEY = 'test-key';
+    process.env.NODE_ENV = 'production';
 
     await handler(mockReq, mockRes);
 

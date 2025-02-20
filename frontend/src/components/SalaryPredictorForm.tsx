@@ -85,27 +85,21 @@ export default function SalaryPredictorForm() {
         }),
       })
 
+      const data = await response.json();
+
       if (!response.ok) {
-        try {
-          const errorData = await response.json();
-          setError(errorData.error || "Failed to fetch prediction");
-        } catch (parseError) {
-          // If JSON parsing fails, use the raw text
-          const errorText = await response.text();
-          setError(errorText || "Failed to fetch prediction");
-          console.error("Error parsing JSON:", parseError); // Log the parse error
-        }
+        setError(data.error || "An unexpected error occurred");
+        setPredictedSalary(null);
         return;
       }
 
-      const data = await response.json();
       const predictedSalaryValue = parseFloat(data.predicted_salary) * CURRENCY_CONVERSION;
-      const roundedSalary = Math.round(predictedSalaryValue / 100) * 100; // Round to nearest hundred
-      const formattedSalary = roundedSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " "); // Add space for thousands separator
-      setPredictedSalary(`${formattedSalary} SEK/month`); // Set the formatted salary
+      const roundedSalary = Math.round(predictedSalaryValue / 100) * 100;
+      const formattedSalary = roundedSalary.toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ");
+      setPredictedSalary(`${formattedSalary} SEK/month`);
     } catch (error) {
       console.error("Error predicting salary:", error)
-      setError(error instanceof Error ? error.message : "Failed to predict salary")
+      setError("Unable to get prediction. Please try again later.")
       setPredictedSalary(null)
     } finally {
       setIsLoading(false)
