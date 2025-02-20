@@ -1,14 +1,15 @@
 export default async function handler(req, res) {
   const apiUrl = process.env.API_URL;
   const apiKey = process.env.API_KEY;
+  const isDevelopment = process.env.NODE_ENV === 'development';
 
   if (!apiKey) {
     return res.status(500).json({ error: 'API Key not configured' });
   }
 
-  // Add HTTPS check
-  if (!apiUrl.startsWith('https://')) {
-    return res.status(500).json({ error: 'API must be served over HTTPS' });
+  // Skip HTTPS check for local development
+  if (!isDevelopment && !apiUrl.startsWith('https://')) {
+    return res.status(500).json({ error: 'API must be served over HTTPS in production' });
   }
 
   try {
@@ -16,20 +17,39 @@ export default async function handler(req, res) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': apiKey,
+        'X-API-Key': apiKey,  // Always include API key
       },
       body: JSON.stringify(req.body),
     });
 
+    const contentType = response.headers.get("content-type");
     if (!response.ok) {
-      const error = await response.text();
-      return res.status(response.status).json({ error: error || `HTTP error! status: ${response.status}` });
+      // Handle HTML error responses
+      if (contentType && contentType.includes("text/html")) {
+        return res.status(503).json({
+          error: "Service is temporarily unavailable. Please try again later."
+        });
+      }
+
+      // Handle JSON error responses
+      try {
+        const error = await response.json();
+        return res.status(response.status).json(error);
+      } catch {
+        // If can't parse JSON, return text
+        const error = await response.text();
+        return res.status(response.status).json({
+          error: "Service error. Please try again later."
+        });
+      }
     }
 
     const data = await response.json();
     res.status(200).json(data);
   } catch (error) {
     console.error('Fetch error:', error);
-    res.status(500).json({ error: error.message || 'Network request failed' });
+    res.status(500).json({
+      error: "Unable to reach prediction service. Please try again later."
+    });
   }
 }
