@@ -33,11 +33,11 @@ export default async function handler(req, res) {
 
       // Handle JSON error responses
       try {
-        const error = await response.json();
-        return res.status(response.status).json(error);
+        const _ = await response.json();
+        return res.status(response.status).json(_);
       } catch {
         // If can't parse JSON, return text
-        const error = await response.text();
+        await response.text(); // Remove unused variable assignment
         return res.status(response.status).json({
           error: "Service error. Please try again later."
         });
