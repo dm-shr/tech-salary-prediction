@@ -198,7 +198,7 @@ services:
     restart: always
     healthcheck:
       test: ["CMD", "curl", "--fail", "http://localhost:8000/healthcheck"]
-      interval: 30s
+      interval: 120s
       timeout: 10s
       retries: 3
 
