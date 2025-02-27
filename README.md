@@ -118,7 +118,7 @@ notebooks
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.10 for deploy (tested with python `3.10.16` and MacOS `14.7.4` for development)
 - Node.js 18+
 - Docker & Docker Compose
 - AWS credentials for S3 storage with the following details:
@@ -177,13 +177,22 @@ cp .env.example .env
 # Edit .env with your AWS credentials and other configurations
 ```
 
-3. Start the backend services:
+3. Local development (tested on MacOS `14.7.4 `):
+
+```bash
+pyenv install 3.10.16 # (if not installed)
+pyenv virtualenv 3.10.16 tech-salary-prediction-3.10.16
+pyenv local tech-salary-prediction-3.10.16
+pip install -r backend/requirements.base.local.txt
+```
+
+4.  Deploy - Start the backend services:
 
 ```bash
 docker-compose up -d --build
 ```
 
-4. (Optional) Set up ngrok for external access:
+4. Deploy - (Optional) Set up ngrok for external access:
 
 ```bash
 ngrok http 8000 # you may also specify the domain
