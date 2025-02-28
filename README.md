@@ -38,11 +38,11 @@ The project is now live! [**Check it out at this link.**](https://tech-salary-pr
 
 ## System Design Overview
 
-<img src="./repo-resources/weekly-pipeline.jpg" alt="System Overview" width="700"/>
+<img src="./repo-resources/weekly-pipeline.jpg" alt="System Overview" width="1000"/>
 
 ## Model Architecture
 
-<img src="./repo-resources/model-architecture.jpg" alt="Model Architecture" width="700"/>
+<img src="./repo-resources/model-architecture.jpg" alt="Model Architecture" width="1000"/>
 
 ## Codebase Structure
 
@@ -105,24 +105,24 @@ notebooks
 
 ## Stack
 
-**ML:**
+🤖 **ML:**
 
 - CatBoost
 - PyTorch
 - Transformers
 - MLflow
 
-**Data:**
+🗄️ **Data:**
 
 - AWS S3
 - DVC for data versioning
 
-**Orchestration:**
+🪈 **Orchestration:**
 
 - docker-compose
 - Airflow
 
-**Backend:**
+🛠️ **Backend:**
 
 - Python
 - AWS EC2
@@ -130,7 +130,7 @@ notebooks
 - GitHub Actions CI/CD
 - Pytest
 
-**Frontend:**
+🖼️ **Frontend:**
 
 - Next.js
 - TypeScript

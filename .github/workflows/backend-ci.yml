@@ -14,6 +14,11 @@ on:
       - 'requirements*.txt'
       - 'pyproject.toml'
       - '.pylintrc'
+      - '!scripts/**'
+      - '!docs/**'
+      - '!.github/workflows/docs-scripts-ci.yml'
+      - '!**.md'
+      - '!frontend/**'
 
 jobs:
   lint:

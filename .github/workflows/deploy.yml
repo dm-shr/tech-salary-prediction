@@ -4,7 +4,13 @@ on:
   push:
     branches:
       - main
-
+    paths:
+      - 'scripts/**'
+      - '.github/workflows/deploy.yml'
+      - 'backend/**'
+      - '!frontend/**'
+      - '!docs/**'
+      - '!**.md'
 jobs:
   deploy:
     runs-on: ubuntu-latest

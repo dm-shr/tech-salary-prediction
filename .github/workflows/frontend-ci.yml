@@ -8,6 +8,11 @@ on:
     paths:
       - 'frontend/**'
       - '.github/workflows/frontend-ci.yml'
+      - '!scripts/**'
+      - '!docs/**'
+      - '!.github/workflows/docs-scripts-ci.yml'
+      - '!**.md'
+      - '!backend/**'
 
 jobs:
   frontend-test:
