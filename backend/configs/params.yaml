@@ -113,7 +113,7 @@ models:
     hidden_size: 384
     hidden_size_test: 312
     mlp_hidden_size: 128
-    num_heads: 8
+    num_heads: 8 # number of cross-attention heads
     dropout: 0.1
     batch_size: 32
     learning_rate: 2e-5
