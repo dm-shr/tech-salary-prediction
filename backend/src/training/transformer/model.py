@@ -155,11 +155,6 @@ class SingleBERTWithCrossAttention(BaseTransformerModel):
 class SingleBERTWithMLP(BaseTransformerModel):
     """Basic single BERT model with an MLP head to ingest the concatenated CLS embeddings."""
 
-    # fmt: off
-    def __init__(self, config):
-        super().__init__(config)
-    # fmt: on
-
     def forward(self, input1, attention_mask1, input2, attention_mask2):
         # Pass both inputs through the same BERT model
         cls1 = self.bert(input_ids=input1, attention_mask=attention_mask1).last_hidden_state[
