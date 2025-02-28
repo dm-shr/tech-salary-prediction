@@ -12,6 +12,7 @@ repos:
         exclude: ^(.*template.*|notebook/.*)$
       - id: check-added-large-files
         exclude: ^(.*template.*|notebook/.*)$
+        args: [--maxkb=2500]
       - id: debug-statements
         language_version: python3
         exclude: ^(.*template.*|notebook/.*)$
