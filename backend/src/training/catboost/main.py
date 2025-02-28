@@ -85,7 +85,7 @@ def main(logger: logging.Logger):
 
         logger.info("Training-evaluation complete. displaying metrics...")
         # Log metrics with CI and the R2 plot
-        display_metrics_with_ci(history, logger, mlflow)
+        metrics_summary = display_metrics_with_ci(history, logger, mlflow)
         # Save history of the performance metrics with week suffix
         logger.info("Saving history of the performance metrics...")
         save_history(
@@ -139,3 +139,5 @@ def main(logger: logging.Logger):
         final_model.save_model(config, f"catboost_{week_suffix}")
 
         logger.info("Training complete.")
+
+        return metrics_summary
