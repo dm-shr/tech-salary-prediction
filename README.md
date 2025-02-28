@@ -17,6 +17,25 @@ The stack overview:
 
 The project is now live! [**Check it out at this link.**](https://tech-salary-prediction.vercel.app/)
 
+## Table of Contents
+- [System Design Overview](#system-design-overview)
+- [Model Architecture](#model-architecture)
+- [Codebase Structure](#codebase-structure)
+  - [Overview](#overview)
+  - [Experiments](#experiments)
+- [Stack](#stack)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Backend Setup - Dependency Management](#backend-setup---dependency-management)
+  - [Backend Setup](#backend-setup)
+  - [CI/CD Backend Setup - AWS EC2 example](#cicd-backend-setup---aws-ec2-example)
+  - [Frontend Setup](#frontend-setup)
+  - [DAG and ML Training Pipeline](#dag-and-ml-training-pipeline)
+- [Data Source](#data-source)
+- [Results Summary](#results-summary)
+- [Authors info](#authors-info)
+- [License](#license)
+
 ## System Design Overview
 
 <img src="./repo-resources/weekly-pipeline.jpg" alt="System Overview" width="700"/>
@@ -36,6 +55,8 @@ report.pdf            # Project report with EDA, literature, and results discuss
 dags/                 # Airflow DAGs for pipeline automation
 
 .github/workflows     # GitHub Actions CI/CD workflows
+
+scripts/              # shell script for deploy within CI/CD workflow
 
 backend/              # Python backend service
 ├── configs/          # Configuration files
@@ -121,8 +142,8 @@ notebooks
 
 ### Prerequisites
 
-- Python 3.10 for deploy (tested with python `3.10.16` and MacOS `14.7.4` for development)
-- Node.js 18+
+- Python `3.10` for deploy (tested with Python `3.10.16` and MacOS `14.7.4` for development)
+- Node.js `18+`
 - Docker & Docker Compose
 - AWS credentials for S3 storage with the following details:
   - `AWS_ACCESS_KEY_ID`
@@ -189,19 +210,118 @@ pyenv local tech-salary-prediction-3.10.16
 pip install -r backend/requirements.base.local.txt
 ```
 
-4.  Deploy - Start the backend services:
+4.  Deploy (first time usage only) - make sure deploy script is executable:
 
 ```bash
-docker-compose up -d --build
+chmod +x scripts/pull_and_build.sh
 ```
 
-4. Deploy - (Optional) Set up ngrok for external access:
+5.  Deploy - Start the backend services:
+
+```bash
+./scripts/pull_and_build.sh
+```
+
+6. Deploy - (Optional) Set up ngrok for external access:
 
 ```bash
 ngrok http 8000 # you may also specify the domain
 ```
-
 **NOTE:** You would need to install [**ngrok**](https://ngrok.com/) for that.
+
+7. Next time push is happening to the `main` branch, GitHub Actions will take care of re-deployment via `.github/workflows/main.yml` config.
+
+### CI/CD Backend Setup - AWS EC2 example
+
+This project uses GitHub Actions for CI/CD that does two things:
+
+- When PR is created to the `main` or `dev` branch, linters and unit tests are run.
+- When code is merged to the `main` branch, changes are automatically deployed to the instance.
+
+#### Setting Up Testing/Linting Workflow
+
+Navigate to your GitHub repository → Settings → Secrets and Variables → Actions, and add the following secrets (see .env.example for more details):
+
+- `AWS_ACCESS_KEY_ID`
+- `AWS_BUCKET_NAME`
+- `AWS_DEFAULT_REGION`
+- `AWS_SECRET_ACCESS_KEY`
+- `DVC_REMOTE_URL`
+- `FERNET_KEY`
+- `GEMINI_API_KEY`
+- `GIT_REPO_URL`
+- `MLFLOW_EXPERIMENT_NAME`
+- `MLFLOW_S3_ENDPOINT_URL`
+- `MLFLOW_TRACKING_URI`
+- `USE_CURRENT_STATE`
+
+#### Setting Up SSH Deployment Workflow
+
+1. **Generate a deployment-specific SSH key pair**:
+
+   ```bash
+   # Create a new SSH key specifically for deployments (no passphrase)
+   ssh-keygen -t ed25519 -C "github-actions-deployment" -f ~/.ssh/github_actions_deploy_key -N ""
+
+   # This creates:
+   # ~/.ssh/github_actions_deploy_key (private key)
+   # ~/.ssh/github_actions_deploy_key.pub (public key)
+   ```
+
+2. **Add the public key to your EC2 instance**:
+
+   ```bash
+   # Copy the public key to your clipboard
+   cat ~/.ssh/github_actions_deploy_key.pub
+
+   # Connect to your EC2 instance
+   ssh your-existing-user@your-ec2-host
+
+   # On the EC2 instance, append to authorized_keys
+   echo "paste-your-public-key-here" >> ~/.ssh/authorized_keys
+
+   # Verify correct permissions
+   chmod 700 ~/.ssh
+   chmod 600 ~/.ssh/authorized_keys
+   ```
+
+3. **Set up GitHub Secrets**:
+
+   Navigate to your GitHub repository → Settings → Secrets and Variables → Actions, and add the following secrets:
+
+   - `EC2_SSH_PRIVATE_KEY`: The content of your private key file (`cat ~/.ssh/github_actions_deploy_key`)
+   - `EC2_HOST`: Your EC2 instance's public IP address or domain name
+   - `EC2_USER`: SSH username for your EC2 instance (e.g., `ec2-user`, `ubuntu`)
+
+4. **Assign an Elastic IP to your EC2 instance** (recommended):
+
+   To ensure your EC2 instance's public IP doesn't change when it restarts:
+
+   - In AWS Console, go to EC2 → Network & Security → Elastic IPs
+   - Click "Allocate Elastic IP address"
+   - Select the newly created Elastic IP → "Actions" → "Associate Elastic IP address"
+   - Choose your instance and associate it
+   - Update `EC2_HOST` secret in GitHub with this Elastic IP
+
+5. **Verify connection** (optional):
+
+   Test your deployment SSH key before relying on the GitHub Actions workflow:
+
+   ```bash
+   # Test the SSH connection using the deployment key
+   ssh -i ~/.ssh/github_actions_deploy_key $EC2_USER@$EC2_HOST 'echo "Connection successful"'
+   ```
+
+6. **Update deployment script permissions**:
+
+   Ensure your deployment script is executable on the EC2 instance:
+
+   ```bash
+   # On your EC2 instance
+   cd ~/tech-salary-prediction
+   chmod +x scripts/pull_and_build.sh
+   ```
+
 
 ### Frontend Setup
 
@@ -221,7 +341,9 @@ ngrok http 8000 # you may also specify the domain
 
   - Go to [**Vercel**](https://vercel.com/)
   - Connect your GitHub repository
-  - Add environment variables in Vercel project settings
+  - Add environment variables in Vercel project settings:
+    - two `API_URL` for production and pre-production environments - HTTPS URL to your backend
+    - two `API_KEY` for production and pre-production environments - API KEY to your backend, must match the one listed in your `.env` file
 
 ### DAG and ML Training Pipeline
 
