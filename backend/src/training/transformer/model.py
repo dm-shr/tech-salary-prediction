@@ -34,7 +34,9 @@ class BaseTransformerModel(nn.Module, ABC):
     """Abstract base class for transformer models that process two text inputs."""
 
     def __init__(self, config):
+        # fmt off
         super().__init__()
+        # fmt on
         # Common configuration for all transformer models
         model_name = (
             config["models"]["transformer"]["model_name"]
@@ -74,10 +76,12 @@ class SingleBERTWithCrossAttention(BaseTransformerModel):
     """Single BERT model with cross-attention between the two text features.
     Here, query is the first text feature and key, value are the second text feature."""
 
+    # fmt: off
     def __init__(self, config):
         super().__init__(config)
         self.num_heads = config["models"]["transformer"]["num_heads"]
         self.cross_attention = CrossAttentionLayer(self.hidden_size, num_heads=self.num_heads)
+    # fmt: on
 
     def forward(
         self,
@@ -151,8 +155,10 @@ class SingleBERTWithCrossAttention(BaseTransformerModel):
 class SingleBERTWithMLP(BaseTransformerModel):
     """Basic single BERT model with an MLP head to ingest the concatenated CLS embeddings."""
 
+    # fmt: off
     def __init__(self, config):
         super().__init__(config)
+    # fmt: on
 
     def forward(self, input1, attention_mask1, input2, attention_mask2):
         # Pass both inputs through the same BERT model
