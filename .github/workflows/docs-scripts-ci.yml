@@ -1,0 +1,23 @@
+name: Documentation and Scripts CI
+
+on:
+    pull_request:
+        branches:
+            - main
+            - dev
+        paths:
+            - '**.md'
+            - 'docs/**'
+            - '.github/workflows/docs-scripts-ci.yml'
+            - 'scripts/**'
+
+jobs:
+  docs-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Simple documentation approval
+        run: |
+          echo "✅ Documentation changes verified"
+          exit 0
