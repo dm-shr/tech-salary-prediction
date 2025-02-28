@@ -7,10 +7,12 @@ on:
       - dev
   push:
     branches:
-      - main  # Add push trigger only for main branch for deployment
+      - main  # For deployment only
 
 jobs:
   lint:
+    # Only run this job on pull requests
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -32,6 +34,8 @@ jobs:
             $(git ls-files '*.py')
 
   backend-test:
+    # Only run this job on pull requests
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -59,6 +63,8 @@ jobs:
           pytest tests/ -vvv --cov=. --cov-report term-missing -o log_cli=1
 
   frontend-test:
+    # Only run this job on pull requests
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
