@@ -34,9 +34,9 @@ class BaseTransformerModel(nn.Module, ABC):
     """Abstract base class for transformer models that process two text inputs."""
 
     def __init__(self, config):
-        # fmt off
+        # fmt: off
         super().__init__()
-        # fmt on
+        # fmt: on
         # Common configuration for all transformer models
         model_name = (
             config["models"]["transformer"]["model_name"]
