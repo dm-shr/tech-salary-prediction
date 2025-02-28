@@ -150,6 +150,21 @@ training:
   confidence_interval:
     alpha: 0.05
 
+# Model Quality Monitoring - thresholds for metrics
+validation:
+  catboost:
+    r2: 0.5
+    mae: 0.5
+    rmse: 0.5
+  transformer:
+    r2: 0.5
+    mae: 0.5
+    rmse: 0.5
+  blended:
+    r2: 0.5
+    mae: 0.5
+    rmse: 0.5
+
 # Experiment Tracking
 logging:
   mlflow:

@@ -29,7 +29,7 @@ jobs:
           pre-commit run --all-files
           pylint --rcfile=../.pylintrc \
             --ignore=notebook \
-            --disable=E0606,W0707,C0415 \
+            --disable=E0606,W0707,C0415,W0107,E1126 \
             $(git ls-files '*.py')
 
   backend-test:

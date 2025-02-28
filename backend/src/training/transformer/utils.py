@@ -1,4 +1,6 @@
 import gc
+from typing import Dict
+from typing import Tuple
 
 import matplotlib.pyplot as plt
 import mlflow
@@ -22,15 +24,20 @@ def set_seed(seed: int) -> None:
     torch.backends.cudnn.benchmark = False
 
 
-def mean_confidence_interval(data, confidence=0.95):
+def mean_confidence_interval(data, confidence=0.95) -> Tuple[float, float, float]:
     n = len(data)
     m, se = np.mean(data), np.std(data) / np.sqrt(n)
     h = se * t.ppf((1 + confidence) / 2, n - 1)
     return m, m - h, m + h
 
 
-def log_seed_metrics_and_plot(results, mlflow, logger):
-    """Calculate statistics across seeds and create visualizations."""
+def log_seed_metrics_and_plot(results, mlflow, logger) -> Dict[str, float]:
+    """
+    Calculate statistics across seeds and create visualizations.
+
+    Returns:
+        dict: Dictionary containing metrics with confidence intervals for the best epoch
+    """
     # Filter out 'final' from results
     seed_keys = [k for k in results.keys() if k != "final"]
 
@@ -78,6 +85,19 @@ def log_seed_metrics_and_plot(results, mlflow, logger):
     }
     mlflow.log_metrics(best_metrics)
 
+    # Create metrics_summary by reusing values from best_metrics
+    metrics_summary = {
+        "r2_mean": best_metrics["best_r2_test_mean"],
+        "r2_ci_lower": best_metrics["best_r2_test_ci_lower"],
+        "r2_ci_upper": best_metrics["best_r2_test_ci_upper"],
+        "mae_mean": best_metrics["best_mae_test_mean"],
+        "mae_ci_lower": best_metrics["best_mae_test_ci_lower"],
+        "mae_ci_upper": best_metrics["best_mae_test_ci_upper"],
+        "rmse_mean": best_metrics["best_rmse_test_mean"],
+        "rmse_ci_lower": best_metrics["best_rmse_test_ci_lower"],
+        "rmse_ci_upper": best_metrics["best_rmse_test_ci_upper"],
+    }
+
     # Create and save the plot
     plt.figure(figsize=(10, 6))
     plt.plot(r2_train_mean[1:], label="train")
@@ -109,6 +129,8 @@ def log_seed_metrics_and_plot(results, mlflow, logger):
         f"RMSE: mean = {rmse_test_mean[best_epoch]:.4f}, "
         f"95% CI = [{rmse_test_ci[best_epoch, 1]:.4f}, {rmse_test_ci[best_epoch, 2]:.4f}]"
     )
+
+    return metrics_summary
 
 
 def log_metrics_to_mlflow(history, seed_name):

@@ -1,5 +1,7 @@
 # transformer main.py
 import logging
+from typing import Any
+from typing import Dict
 
 import numpy as np
 import torch
@@ -21,7 +23,7 @@ config = load_config()
 mlflow = setup_mlflow(config)
 
 
-def main(logger: logging.Logger, enabled=True):
+def main(logger: logging.Logger, enabled=True) -> Dict[str, Any]:
     # Get current week info for file naming
     week_info = current_week_info()
     week_suffix = f"week_{week_info['week_number']}_year_{week_info['year']}"
@@ -105,7 +107,7 @@ def main(logger: logging.Logger, enabled=True):
         )
 
         # Initialize results dictionary
-        results = {"final": None}
+        results = {"final": None, "evaluation_best_epoch": None}
 
         # Training loop for each seed
         for i, seed in enumerate(seeds, 1):
@@ -163,7 +165,8 @@ def main(logger: logging.Logger, enabled=True):
 
         # Log aggregate metrics across seeds
         logger.info("Computing aggregate metrics across seeds...")
-        log_seed_metrics_and_plot(results, mlflow, logger)
+        metrics_summary = log_seed_metrics_and_plot(results, mlflow, logger)
+        results["evaluation_best_epoch"] = metrics_summary
 
         # save y_pred and y_true as arrays with week suffix
         y_pred = np.array(y_pred)

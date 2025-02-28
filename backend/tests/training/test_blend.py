@@ -57,7 +57,9 @@ def test_blend_and_evaluate(sample_predictions):
     """Test the complete blending and evaluation pipeline."""
     catboost_preds, transformer_preds, y_true = sample_predictions
 
-    result = blend_and_evaluate(catboost_preds, transformer_preds, y_true, blend_weights=(0.5, 0.5))
+    result, _ = blend_and_evaluate(
+        catboost_preds, transformer_preds, y_true, blend_weights=(0.5, 0.5)
+    )
 
     assert "best_epoch" in result
     assert "metrics" in result

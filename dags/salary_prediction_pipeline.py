@@ -5,7 +5,9 @@ from datetime import timedelta
 from airflow import DAG
 from airflow.operators.bash import BashOperator
 from airflow.operators.python import PythonOperator
+from airflow.operators.python import ShortCircuitOperator
 from airflow.utils.dates import days_ago
+from airflow.utils.trigger_rule import TriggerRule
 from dotenv import load_dotenv
 
 import docker
@@ -41,6 +43,25 @@ default_args = {
 
 # Configuration
 REPO_PATH = os.getenv("REPO_PATH", "/opt/airflow/repo")  # Keep REPO_PATH at the root
+
+
+def check_model_validation():
+    """
+    Check if the model validation was successful.
+    This function reads a status file created by the train_models task.
+
+    Returns:
+        bool: True if validation passed, False otherwise
+    """
+    validation_path = f"{REPO_PATH}/model_validation_status.txt"
+    try:
+        with open(validation_path) as f:
+            status = f.read().strip()
+            logger.info("Model validation status: %s", status)
+            return status == "success"
+    except FileNotFoundError:
+        logger.error("Model validation status file not found")
+        return False
 
 
 with DAG(
@@ -282,13 +303,27 @@ with DAG(
         cwd=REPO_PATH,
     )
 
-    # Train models
+    # Train models with validation
     train_models = BashOperator(
         task_id="train_models",
         bash_command="""
             cd ${REPO_PATH}
             cd backend
-            python -m src.training.main
+            VALIDATION_STATUS_FILE=/tmp/model_validation_status.txt
+
+            # Remove any previous validation status file
+            rm -f ${REPO_PATH}/model_validation_status.txt
+
+            # Run training with validation
+            if python -m src.training.main; then
+                echo "success" > "${VALIDATION_STATUS_FILE}"
+                echo "Model validation passed. Models are ready for deployment."
+            else
+                echo "failed" > "${VALIDATION_STATUS_FILE}"
+                echo "Model validation failed. Containers will not be updated."
+                # Exit with success to continue the DAG
+                exit 0
+            fi
         """,
         cwd=REPO_PATH,
         env={
@@ -300,6 +335,13 @@ with DAG(
             "AWS_SECRET_ACCESS_KEY": os.getenv("AWS_SECRET_ACCESS_KEY"),
             "MLFLOW_S3_IGNORE_TLS": "true",
         },
+    )
+
+    # Check if model validation passed before updating containers
+    check_validation = ShortCircuitOperator(
+        task_id="check_model_validation",
+        python_callable=check_model_validation,
+        dag=dag,
     )
 
     # After successful run, trigger model update in inference service
@@ -327,6 +369,26 @@ with DAG(
         except docker.errors.APIError as e:
             logger.error("Error restarting container '%s': %s", container_name, e)
 
+    log_failed_validation = BashOperator(
+        task_id="log_failed_validation",
+        bash_command="""
+            VALIDATION_STATUS_FILE=/tmp/model_validation_status.txt
+
+            if [[ ! -f "${VALIDATION_STATUS_FILE}" ]]; then
+                echo "Model validation status file not found"
+                exit 0
+            elif grep -q "failed" "${VALIDATION_STATUS_FILE}" 2>/dev/null; then
+                echo "Model validation FAILED! Inference containers were NOT updated."
+                exit 0
+            else
+                echo "Model validation PASSED! Containers were updated."
+                exit 0
+            fi
+        """,
+        cwd=REPO_PATH,
+        trigger_rule=TriggerRule.ALL_DONE,  # Run even if the previous task is skipped
+    )
+
     # Cleanup after successful inference trigger
     cleanup_files = BashOperator(
         task_id="cleanup_files",
@@ -335,8 +397,10 @@ with DAG(
             rm -rf backend/data/preprocessed/merged/*
             rm -rf .dvc/cache
             rm -rf .dvc/tmp
+            rm -f /tmp/model_validation_status.txt
         """,
         cwd=REPO_PATH,
+        trigger_rule=TriggerRule.ALL_DONE,  # Run even if some upstream tasks failed
     )
     (
         debug_config
@@ -347,7 +411,7 @@ with DAG(
         >> dvc_push_merged
         >> build_features
         >> train_models
-        >> notify_streamlit
-        >> notify_fastapi
-        >> cleanup_files
     )
+
+    train_models >> check_validation >> [notify_streamlit, notify_fastapi]
+    train_models >> log_failed_validation >> cleanup_files
