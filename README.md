@@ -227,7 +227,7 @@ chmod +x scripts/pull_and_build.sh
 ```bash
 ngrok http 8000 # you may also specify the domain
 ```
-**NOTE:** You would need to install [**ngrok**](https://ngrok.com/) for that.
+**NOTE!** You would need to install [**ngrok**](https://ngrok.com/) for that.
 
 7. Next time push is happening to the `main` branch, GitHub Actions will take care of re-deployment via `.github/workflows/main.yml` config.
 
