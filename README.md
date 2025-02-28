@@ -322,6 +322,7 @@ Navigate to your GitHub repository → Settings → Secrets and Variables → Ac
    chmod +x scripts/pull_and_build.sh
    ```
 
+   Within the script, you can adjust the name of the services to run (by default set to the inference `fastapi` service only)
 
 ### Frontend Setup
 
