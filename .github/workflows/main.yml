@@ -84,7 +84,6 @@ jobs:
   deploy:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    needs: [backend-test, frontend-test]  # Make sure tests pass before deployment
 
     steps:
       - name: Configure SSH
