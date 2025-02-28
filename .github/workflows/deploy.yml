@@ -1,0 +1,32 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+
+          # Remove any existing known hosts for this IP
+          ssh-keygen -f ~/.ssh/known_hosts -R "${{ secrets.EC2_HOST }}" || true
+
+          cat >> ~/.ssh/config << EOF
+          Host ec2
+            HostName ${{ secrets.EC2_HOST }}
+            User ${{ secrets.EC2_USER }}
+            IdentityFile ~/.ssh/ec2_key.pem
+            StrictHostKeyChecking accept-new
+          EOF
+
+      - name: Deploy to EC2
+        run: |
+          ssh ec2 'cd /home/${{ secrets.EC2_USER }}/tech-salary-prediction && \
+                  ./scripts/pull_and_build.sh'
