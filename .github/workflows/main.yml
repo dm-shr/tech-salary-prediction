@@ -1,14 +1,13 @@
 name: CI/CD Pipeline
 
 on:
-  push:
-    branches:
-      - main
-      - dev
   pull_request:
     branches:
       - main
       - dev
+  push:
+    branches:
+      - main  # Add push trigger only for main branch for deployment
 
 jobs:
   lint:
@@ -80,3 +79,28 @@ jobs:
         run: |
           cd frontend
           npm test
+
+  # This job will only run on push to main (after PR merge)
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-test]  # Make sure tests pass before deployment
+
+    steps:
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh/
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key.pem
+          chmod 600 ~/.ssh/ec2_key.pem
+          cat >> ~/.ssh/config << EOF
+          Host ec2
+            HostName ${{ secrets.EC2_HOST }}
+            User ${{ secrets.EC2_USER }}
+            IdentityFile ~/.ssh/ec2_key.pem
+            StrictHostKeyChecking no
+          EOF
+
+      - name: Deploy to EC2
+        run: |
+          ssh ec2 'cd /home/${{ secrets.EC2_USER }}/tech-salary-prediction && \
+                  ./scripts/pull_and_build.sh'
