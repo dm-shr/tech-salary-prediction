@@ -30,6 +30,9 @@ The project is now live! [**Check it out at this link.**](https://tech-salary-pr
 ### Overview
 
 ```plaintext
+
+report.pdf            # Project report with EDA, literature, and results discussion
+
 dags/                 # Airflow DAGs for pipeline automation
 
 .github/workflows     # GitHub Actions CI/CD workflows
