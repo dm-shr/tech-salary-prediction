@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 from src.training.catboost.main import main as train_catboost
 from src.training.utils import setup_mlflow
+from src.training.validation import validate_model_scores
 from src.utils.s3_model_loader import S3ModelLoader
 from src.utils.utils import current_week_info
 from src.utils.utils import load_config
@@ -22,7 +23,12 @@ def train_and_evaluate_single_model(
 ) -> None:
     """Train and evaluate only CatBoost model when transformer is disabled."""
     logger.info("Training CatBoost model...")
-    train_catboost(logger)
+    catboost_results = train_catboost(logger)
+
+    # Validate CatBoost metrics
+    logger.info("Validating CatBoost model performance...")
+    thresholds = config["validation"]["catboost"]
+    validate_model_scores(catboost_results, thresholds, "CatBoost")
 
     # Upload CatBoost model
     catboost_local_path = f"{config['models']['catboost']['save_dir']}/catboost_{week_suffix}.cbm"
@@ -49,13 +55,25 @@ def train_and_evaluate_blended(
 
     # Train CatBoost
     logger.info("Training CatBoost model...")
-    train_catboost(logger)
+    catboost_results = train_catboost(logger)
+
+    # Validate CatBoost metrics
+    logger.info("Validating CatBoost model performance...")
+    catboost_thresholds = config["validation"]["catboost"]
+    validate_model_scores(catboost_results, catboost_thresholds, "CatBoost")
+
     catboost_local_path = f"{config['models']['catboost']['save_dir']}/catboost_{week_suffix}.cbm"
     s3_loader.upload_model("catboost", week_info, catboost_local_path)
 
     # Train Transformer
     logger.info("Training Transformer model...")
-    train_transformer(logger, enabled=True)
+    transformer_results = train_transformer(logger, enabled=True)["evaluation_best_epoch"]
+
+    # Validate Transformer metrics
+    logger.info("Validating Transformer model performance...")
+    transformer_thresholds = config["validation"]["transformer"]
+    validate_model_scores(transformer_results, transformer_thresholds, "Transformer")
+
     transformer_local_path = (
         f"{config['models']['transformer']['save_base']}/transformer_{week_suffix}.pt"
     )
@@ -87,7 +105,7 @@ def train_and_evaluate_blended(
 
     # Calculate blended metrics
     logger.info("Calculating blended metrics...")
-    results = blend_and_evaluate(
+    results_for_logging, results_for_testing = blend_and_evaluate(
         catboost_preds=catboost_predictions,
         transformer_preds=transformer_predictions,
         y_true=y_true_catboost,
@@ -95,23 +113,28 @@ def train_and_evaluate_blended(
         alpha=config["training"]["confidence_interval"]["alpha"],
     )
 
+    # Validate blended model metrics
+    logger.info("Validating blended model performance...")
+    blended_thresholds = config["validation"]["blended"]
+    validate_model_scores(results_for_testing, blended_thresholds, "Blended")
+
     # Log blended results to MLflow
     run_name = f"{config['models']['blended']['mlflow_run_name']}_{week_suffix}"
     with mlflow.start_run(run_name=run_name):
         # Log parameters
-        mlflow.log_param("best_epoch", results["best_epoch"])
+        mlflow.log_param("best_epoch", results_for_logging["best_epoch"])
         mlflow.log_param("blend_weight_catboost", catboost_weight)
         mlflow.log_param("blend_weight_transformer", transformer_weight)
 
         # Log metrics with confidence intervals
-        for metric_name, values in results["metrics"].items():
+        for metric_name, values in results_for_logging["metrics"].items():
             mlflow.log_metric(f"best_{metric_name}_mean", values[0])
             mlflow.log_metric(f"best_{metric_name}_ci_lower", values[1])
             mlflow.log_metric(f"best_{metric_name}_ci_upper", values[2])
 
         # Log results
-        logger.info(f"Best epoch: {results['best_epoch']}")
-        for metric_name, values in results["metrics"].items():
+        logger.info(f"Best epoch: {results_for_logging['best_epoch']}")
+        for metric_name, values in results_for_logging["metrics"].items():
             logger.info(
                 f"{metric_name.upper()}: mean={values[0]:.4f}, "
                 f"CI=[{values[1]:.4f}, {values[2]:.4f}]"

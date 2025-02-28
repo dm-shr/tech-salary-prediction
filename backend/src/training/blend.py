@@ -1,3 +1,7 @@
+from typing import Dict
+from typing import Tuple
+from typing import Union
+
 import numpy as np
 from scipy.stats import t
 from sklearn.metrics import mean_squared_error
@@ -24,7 +28,7 @@ def calculate_metrics(y_true, y_pred):
 
 def blend_and_evaluate(
     catboost_preds, transformer_preds, y_true, blend_weights=(0.5, 0.5), alpha=0.05
-):
+) -> Tuple[Dict[str, Union[int, Dict[str, Tuple[float, float, float]]]], Dict[str, float]]:
     """
     Blend predictions and evaluate metrics.
 
@@ -75,7 +79,7 @@ def blend_and_evaluate(
     best_mae_ci = mean_confidence_interval(mae_scores[:, best_epoch], alpha)
     best_rmse_ci = mean_confidence_interval(rmse_scores[:, best_epoch], alpha)
 
-    return {
+    results_for_logging = {
         "best_epoch": best_epoch + 1,
         "metrics": {
             "r2": best_r2_ci,
@@ -88,3 +92,17 @@ def blend_and_evaluate(
             "rmse": mean_rmse,
         },
     }
+
+    results_for_testing = {
+        "r2_mean": best_r2_ci[0],
+        "r2_ci_lower": best_r2_ci[1],
+        "r2_ci_upper": best_r2_ci[2],
+        "mae_mean": best_mae_ci[0],
+        "mae_ci_lower": best_mae_ci[1],
+        "mae_ci_upper": best_mae_ci[2],
+        "rmse_mean": best_rmse_ci[0],
+        "rmse_ci_lower": best_rmse_ci[1],
+        "rmse_ci_upper": best_rmse_ci[2],
+    }
+
+    return results_for_logging, results_for_testing

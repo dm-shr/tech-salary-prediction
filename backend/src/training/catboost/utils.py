@@ -167,7 +167,7 @@ def display_metrics_with_ci(history: dict, logger, mlflow):
 
     metrics_summary = {}
 
-    for metric_name, values in zip(["R²", "MAE", "RMSE"], [r2_values, mae_values, rmse_values]):
+    for metric_name, values in zip(["R2", "MAE", "RMSE"], [r2_values, mae_values, rmse_values]):
         mean, lower, upper = calculate_ci(values)
         metrics_summary.update(
             {
@@ -179,3 +179,5 @@ def display_metrics_with_ci(history: dict, logger, mlflow):
         logger.info(f"{metric_name}: Mean = {mean:.4f}, 95% CI = [{lower:.4f}, {upper:.4f}]")
 
     mlflow.log_metrics(metrics_summary)
+
+    return metrics_summary

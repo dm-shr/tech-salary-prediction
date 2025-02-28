@@ -59,20 +59,14 @@ services:
 
   repo-init:
     container_name: repo-init
-    # Option 1: Local development setup - copies local files
-    image: alpine:latest
+    build:
+      context: .
+      dockerfile: backend/docker/repo-init/Dockerfile
     volumes:
-      - .:/tmp/repo:ro  # Mount local directory as read-only
       - airflow-repo:/opt/airflow/repo
-    command: >
-      sh -c "
-        cp -r /tmp/repo/. /opt/airflow/repo/ && \
-        chown -R 50000:0 /opt/airflow/repo/
-      "
     depends_on:
       postgres:
         condition: service_healthy
-
 
   webserver:
     <<: *airflow-common

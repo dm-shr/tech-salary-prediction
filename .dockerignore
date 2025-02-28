@@ -6,10 +6,10 @@ backend/catboost_info/
 backend/misc/
 backend/mlartifacts/
 backend/mlruns/
-backend/data/
 backend/models/
-
+mlruns/
 logs/
+frontend/
 
 .dvc/cache/
 .dvc/tmp/
