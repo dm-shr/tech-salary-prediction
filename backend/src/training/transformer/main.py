@@ -9,7 +9,7 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 
 from src.training.transformer.dataset import split_tokenized_dict
-from src.training.transformer.model import SingleBERTWithMLP
+from src.training.transformer.model import SingleBERTWithCrossAttention
 from src.training.transformer.train import fit_eval
 from src.training.transformer.utils import log_metrics_to_mlflow
 from src.training.transformer.utils import log_seed_metrics_and_plot
@@ -115,7 +115,7 @@ def main(logger: logging.Logger, enabled=True) -> Dict[str, Any]:
             set_seed(seed)
 
             # Initialize model
-            model = SingleBERTWithMLP(config)
+            model = SingleBERTWithCrossAttention(config)
             model = torch.nn.DataParallel(model).to(device)
 
             optimizer = torch.optim.AdamW(
@@ -186,7 +186,7 @@ def main(logger: logging.Logger, enabled=True) -> Dict[str, Any]:
             "tokenized_feature2": tokenized_feature2,
             "targets": targets,
         }
-        final_model = SingleBERTWithMLP(config)
+        final_model = SingleBERTWithCrossAttention(config)
         final_model = torch.nn.DataParallel(final_model).to(device)
         final_model.train()
         model, history = fit_eval(
