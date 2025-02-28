@@ -1,0 +1,15 @@
+/backend
+/dags
+/docs
+/logs
+/notebooks
+/plugins
+/repo-resources
+/scripts
+/.github
+*.md
+.env*
+LICENSE
+docker-compose.yml
+pyproject.toml
+requirements*.txt
