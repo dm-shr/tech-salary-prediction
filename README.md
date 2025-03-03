@@ -38,7 +38,7 @@ The project is now live! [**Check it out at this link.**](https://tech-salary-pr
 
 ## System Design Overview
 
-<img src="./repo-resources/weekly-pipeline.jpg" alt="System Overview" width="1000"/>
+<img src="./repo-resources/weekly-pipeline.gif" alt="System Overview" width="1000"/>
 
 ## Model Architecture
 
