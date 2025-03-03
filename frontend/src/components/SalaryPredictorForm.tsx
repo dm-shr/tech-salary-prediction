@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea"
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
+import { MdOutlineContactPage } from "react-icons/md";
 import { rateLimiter } from "@/utils/rateLimit"
 
 const CURRENCY_CONVERSION = 0.38; // Define the currency conversion rate
@@ -124,7 +125,7 @@ export default function SalaryPredictorForm() {
             className="text-gray-900 hover:text-black flex items-center gap-2"
           >
             <FaGithub className="text-xl text-black" />
-            <span className="hidden md:inline">GitHub</span> {/* Hide text on small screens */}
+            <span className="hidden md:inline">GitHub</span>
           </a>
           <a
             href="https://www.linkedin.com/in/dshiriaev/"
@@ -133,7 +134,16 @@ export default function SalaryPredictorForm() {
             className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
           >
             <FaLinkedin className="text-xl" />
-            <span className="hidden md:inline">LinkedIn</span> {/* Hide text on small screens */}
+            <span className="hidden md:inline">LinkedIn</span>
+          </a>
+          <a
+            href="https://shiriaev.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-900 hover:text-black flex items-center gap-2"
+          >
+            <MdOutlineContactPage className="text-xl" />
+            <span className="hidden md:inline">Portfolio</span>
           </a>
         </div>
       </div>
