@@ -1,4 +1,4 @@
-# Tech Salary Prediction Service
+# IT Industry Prediction Service
 
 With the upcoming EU Pay Transparency Directive in 2026, understanding and predicting fair salary ranges is becoming increasingly crucial for businesses.
 
