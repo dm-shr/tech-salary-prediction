@@ -221,13 +221,22 @@ export default function SalaryPredictorForm() {
                 .rc-slider-rail {
                   height: 12px !important; /* Adjust the height of the rail */
                 }
+                .rc-slider-track {
+                  height: 12px !important; /* Adjust the height of the track */
+                  background-color: #b2aee7 !important; /* Change track color to #8781dc */
+                }
                 .rc-slider-handle {
                   width: 24px !important; /* Adjust the width of the handle */
                   height: 24px !important; /* Adjust the height of the handle */
                   margin-top: -6px !important; /* Adjust the margin to center the handle */
+                  border: solid 2px #b2aee7 !important; /* Change handle border color to match */
                 }
-                .rc-slider-track {
-                  height: 12px !important; /* Adjust the height of the track */
+                .rc-slider-handle:active {
+                  border-color: #6259d2 !important; /* Slightly darker color when active */
+                  box-shadow: 0 0 5px #b2aee7 !important; /* Add glow effect when active */
+                }
+                .rc-slider-handle:hover {
+                  border-color: #6259d2 !important; /* Slightly darker on hover */
                 }
               `}</style>
               <Slider
