@@ -11,6 +11,7 @@ import 'rc-slider/assets/index.css';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { MdOutlineContactPage } from "react-icons/md";
 import { rateLimiter } from "@/utils/rateLimit"
+import { WaitlistPanel } from "./waitlist-panel"
 
 const CURRENCY_CONVERSION = 0.38; // Define the currency conversion rate
 
@@ -242,6 +243,10 @@ export default function SalaryPredictorForm() {
                 <div>{experienceRange[1]} years</div>
               </div>
             </div>
+          </div>
+
+          <div className="hidden md:flex relative -right-10 justify-end mb-4">
+            <WaitlistPanel />
           </div>
 
           <div className="mb-4">
