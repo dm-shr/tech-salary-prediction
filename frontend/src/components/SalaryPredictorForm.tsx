@@ -11,6 +11,7 @@ import 'rc-slider/assets/index.css';
 import { FaGithub, FaLinkedin } from "react-icons/fa";
 import { MdOutlineContactPage } from "react-icons/md";
 import { rateLimiter } from "@/utils/rateLimit"
+import { WaitlistPanel } from "./waitlist-panel"
 
 const CURRENCY_CONVERSION = 0.38; // Define the currency conversion rate
 
@@ -220,13 +221,22 @@ export default function SalaryPredictorForm() {
                 .rc-slider-rail {
                   height: 12px !important; /* Adjust the height of the rail */
                 }
+                .rc-slider-track {
+                  height: 12px !important; /* Adjust the height of the track */
+                  background-color: #b2aee7 !important; /* Change track color to #8781dc */
+                }
                 .rc-slider-handle {
                   width: 24px !important; /* Adjust the width of the handle */
                   height: 24px !important; /* Adjust the height of the handle */
                   margin-top: -6px !important; /* Adjust the margin to center the handle */
+                  border: solid 2px #b2aee7 !important; /* Change handle border color to match */
                 }
-                .rc-slider-track {
-                  height: 12px !important; /* Adjust the height of the track */
+                .rc-slider-handle:active {
+                  border-color: #6259d2 !important; /* Slightly darker color when active */
+                  box-shadow: 0 0 5px #b2aee7 !important; /* Add glow effect when active */
+                }
+                .rc-slider-handle:hover {
+                  border-color: #6259d2 !important; /* Slightly darker on hover */
                 }
               `}</style>
               <Slider
@@ -242,6 +252,10 @@ export default function SalaryPredictorForm() {
                 <div>{experienceRange[1]} years</div>
               </div>
             </div>
+          </div>
+
+          <div className="hidden md:flex relative -right-10 justify-end mb-4">
+            <WaitlistPanel />
           </div>
 
           <div className="mb-4">
