@@ -9,6 +9,7 @@ from fastapi import Header
 from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from supabase import create_client
 
 from src.feature_building.main import FeatureBuilder
 from src.training.catboost.model import CatBoostModel
@@ -133,8 +134,40 @@ app.add_middleware(
     expose_headers=[],
 )
 
+# Supabase setup
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    logger.warning("Supabase URL and Key not set, logging to Supabase will be disabled")
+    supabase = None
+else:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+def store_prediction(user_id: str, chat_history: dict):
+    """Stores prediction data in Supabase."""
+    if not supabase:
+        logger.warning("Supabase client not initialized, skipping logging")
+        return None
+
+    data = {
+        "user_id": user_id,
+        "chat_history": chat_history,
+        "app_type": "tech-salary-prediction",
+    }
+
+    try:
+        response = supabase.table("conversations").insert(data).execute()
+        logger.info(f"Prediction stored in Supabase for user: {user_id}")
+        return response
+    except Exception as e:
+        logger.error(f"Error storing prediction in Supabase: {e}")
+        return None
+
 
 class InferenceInput(BaseModel):
+    userId: str
     title: str
     company: str
     location: str
@@ -174,8 +207,20 @@ async def predict(input_data: InferenceInput):
         # Reverse log transformation and scale
         final_salary = float(np.exp(predicted_salary) * 1000)
 
+        # Create response
+        response = {"predicted_salary": final_salary}
+
+        # Log to Supabase
+        input_dict = input_data.dict()
+        user_id = input_dict.pop("userId")  # Extract userId and remove from input_dict
+        chat_history = input_dict
+        chat_history["predicted_salary"] = final_salary
+
+        # Store prediction in Supabase
+        store_prediction(user_id, chat_history)
+
         logger.info(f"Predicted salary: {final_salary:,.2f}")
-        return {"predicted_salary": final_salary}
+        return response
 
     except ValueError as ve:
         logger.error(f"Validation error: {ve}")

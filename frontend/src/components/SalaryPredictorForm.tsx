@@ -15,7 +15,11 @@ import { WaitlistPanel } from "./waitlist-panel"
 
 const CURRENCY_CONVERSION = 0.38; // Define the currency conversion rate
 
-export default function SalaryPredictorForm() {
+interface SalaryPredictorFormProps {
+  userId: string;
+}
+
+export default function SalaryPredictorForm({ userId }: SalaryPredictorFormProps) {
   const [title, setTitle] = useState("Machine Learning Engineer")
   const [company, setCompany] = useState("Spotify")
   const [location, setLocation] = useState("Stockholm")
@@ -54,6 +58,12 @@ export default function SalaryPredictorForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
+    if (!userId) {
+      console.error("User ID not available");
+      setError("User identification error. Please try reloading the page.");
+      return;
+    }
+
     if (!rateLimiter.checkLimit()) {
       setError("Too many requests. Please wait a minute.");
       return;
@@ -77,6 +87,7 @@ export default function SalaryPredictorForm() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          userId, // Include the userId in the request
           title,
           company,
           location,
