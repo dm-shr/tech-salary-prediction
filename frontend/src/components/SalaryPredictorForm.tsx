@@ -268,7 +268,7 @@ export default function SalaryPredictorForm() {
           </div>
 
           <div className="flex flex-col items-center justify-center mt-6">
-            <div className="w-full max-w-xs">
+            <div className="w-full max-w-xs" style={{ position: 'relative', top: '-20px' }}>
               <Button
                 type="submit"
                 disabled={isLoading}
@@ -277,7 +277,7 @@ export default function SalaryPredictorForm() {
                 {isLoading ? "Predicting..." : "Predict Salary"}
               </Button>
             </div>
-            <div className="h-12 w-full flex items-center justify-center mt-6">
+            <div className="h-12 w-full flex items-center justify-center mt-6" style={{ position: 'relative', top: '-25px' }}>
               {error ? (
                 <div className="px-4 py-3 rounded-lg shadow-md w-full max-w-sm bg-red-50 border border-red-200">
                   <p className="text-red-700 text-center">{error}</p>
