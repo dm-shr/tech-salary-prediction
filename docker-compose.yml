@@ -197,6 +197,38 @@ services:
       retries: 5
       start_period: 20s
 
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      fastapi:
+        condition: service_started
+    restart: always
+
+  grafana:
+    container_name: grafana
+    build:
+      context: .
+      dockerfile: backend/docker/grafana/Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      GF_INSTALL_PLUGINS: "grafana-clock-panel,grafana-simple-json-datasource"
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_DASHBOARDS_MIN_REFRESH_INTERVAL: 5s
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: "grafana-pyroscope-app,grafana-lokiexplore-app"
+    volumes:
+      - ./grafana/provisioning/dashboards/salary-prediction.json:/etc/grafana/provisioning/dashboards/salary-prediction.json:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+    restart: always
+
 volumes:
   postgres-db-volume:
   airflow-repo:

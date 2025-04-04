@@ -1,4 +1,5 @@
 import os
+import time
 from typing import Optional
 
 import numpy as np
@@ -7,7 +8,12 @@ from fastapi import Depends
 from fastapi import FastAPI
 from fastapi import Header
 from fastapi import HTTPException
+from fastapi import Response
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import CONTENT_TYPE_LATEST
+from prometheus_client import Gauge
+from prometheus_client import generate_latest
+from prometheus_client import Histogram
 from pydantic import BaseModel
 from supabase import create_client
 
@@ -17,7 +23,6 @@ from src.training.catboost.utils import create_pool_data
 from src.training.loader import load_models
 from src.utils.utils import load_config
 from src.utils.utils import setup_logging
-
 
 config = load_config()
 
@@ -32,6 +37,10 @@ catboost_weight = config["models"]["blended"]["catboost_weight"]
 transformer_weight = config["models"]["blended"]["transformer_weight"]
 
 load_dotenv()
+
+# Prometheus metrics
+PREDICTION_LATENCY = Histogram("prediction_latency_seconds", "Latency of salary predictions")
+PREDICTED_SALARY = Gauge("predicted_salary", "Value of predicted salary")
 
 
 def get_models():
@@ -186,6 +195,7 @@ async def healthcheck():
 
 @app.post("/predict", dependencies=[Depends(verify_api_key)])
 async def predict(input_data: InferenceInput):
+    start_time = time.time()
     try:
         # Prepare inference data
         await feature_builder.prepare_set_inference_data(
@@ -206,6 +216,9 @@ async def predict(input_data: InferenceInput):
 
         # Reverse log transformation and scale
         final_salary = float(np.exp(predicted_salary) * 1000)
+
+        # Track the predicted salary value
+        PREDICTED_SALARY.set(final_salary)
 
         # Create response
         response = {"predicted_salary": final_salary}
@@ -228,3 +241,11 @@ async def predict(input_data: InferenceInput):
     except Exception as e:
         logger.error(f"Error during prediction: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        latency = time.time() - start_time
+        PREDICTION_LATENCY.observe(latency)
+
+
+@app.get("/metrics")
+async def metrics():
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
